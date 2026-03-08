@@ -1,0 +1,506 @@
+---
+title: Authentication System
+description: How Prism Launcher implements Microsoft account authentication and session management
+---
+
+Prism Launcher implements a comprehensive authentication system supporting both Microsoft accounts (MSA) and offline accounts, with a sophisticated multi-step OAuth2 flow for Microsoft authentication.
+
+## Authentication Architecture
+
+The authentication system is built around three core classes:
+
+```cpp
+MinecraftAccount    // Account storage and management
+AuthFlow           // Multi-step authentication process
+AuthStep           // Individual authentication steps
+```
+
+## MinecraftAccount - Account Management
+
+The `MinecraftAccount` class represents a single account with all its associated data.
+
+```cpp
+class MinecraftAccount : public QObject, public Usable {
+private:
+    AccountData data;  // Contains tokens, profile info, skin data
+    shared_qobject_ptr<AuthFlow> m_currentTask;
+    
+public:
+    // Account types
+    AccountType accountType() const;  // MSA or Offline
+    
+    // Authentication operations
+    shared_qobject_ptr<AuthFlow> login(bool useDeviceCode = false);
+    shared_qobject_ptr<AuthFlow> refresh();
+    
+    // Account properties
+    QString accessToken() const;
+    QString profileId() const;
+    QString profileName() const;
+    bool ownsMinecraft() const;
+    bool hasProfile() const;
+};
+```
+
+*Source: `launcher/minecraft/auth/MinecraftAccount.h:77-173`*
+
+### Account Types
+
+Two account types are supported:
+
+<Accordion title="Microsoft Account (MSA)">
+Full authentication with Microsoft's identity platform:
+- Requires OAuth2 browser authentication
+- Validates Minecraft ownership
+- Provides profile information and skins
+- Supports multiplayer and realms
+
+Created with:
+```cpp
+MinecraftAccountPtr account = MinecraftAccount::createBlankMSA();
+```
+</Accordion>
+
+<Accordion title="Offline Account">
+Local-only accounts without authentication:
+- No server connectivity
+- No skin support
+- No multiplayer (except LAN)
+- Useful for modded/offline play
+
+Created with:
+```cpp
+MinecraftAccountPtr account = MinecraftAccount::createOffline(username);
+```
+</Accordion>
+
+### Account Storage
+
+Accounts are persisted to JSON:
+
+```cpp
+// Serialization
+QJsonObject saveToJson() const;
+static MinecraftAccountPtr loadFromJsonV3(const QJsonObject& json);
+```
+
+The JSON includes:
+- Account type and internal ID
+- MSA tokens (access, refresh)
+- Xbox Live tokens (user, XSTS)
+- Minecraft tokens
+- Profile information (UUID, name)
+- Skin data
+- Entitlement status
+
+<Note>
+Tokens are stored encrypted where platform support is available (e.g., Windows Credential Manager, macOS Keychain).
+</Note>
+
+## AuthFlow - Multi-Step Authentication
+
+The `AuthFlow` class orchestrates the complete authentication process as a sequence of steps.
+
+```cpp
+class AuthFlow : public Task {
+private:
+    QList<AuthStep::Ptr> m_steps;
+    AuthStep::Ptr m_currentStep;
+    AccountData* m_data;
+    AccountTaskState m_taskState;
+    
+public:
+    enum class Action { 
+        Refresh,      // Refresh existing tokens
+        Login,        // New login via browser
+        DeviceCode    // Device code flow (alternative login)
+    };
+    
+    AuthFlow(AccountData* data, Action action);
+};
+```
+
+*Source: `launcher/minecraft/auth/AuthFlow.h:12-46`*
+
+### Authentication Flow States
+
+```cpp
+enum class AccountTaskState {
+    STATE_CREATED,      // Initial state
+    STATE_WORKING,      // Step in progress
+    STATE_SUCCEEDED,    // Authentication successful
+    STATE_DISABLED,     // MSA Client ID changed, reauth needed
+    STATE_FAILED_SOFT,  // Partial failure, some data valid
+    STATE_FAILED_HARD,  // Complete failure, tokens invalid
+    STATE_FAILED_GONE,  // Account no longer exists
+    STATE_OFFLINE       // Network/connection failure
+};
+```
+
+*Source: `launcher/minecraft/auth/AuthStep.h:12-21`*
+
+## Authentication Steps
+
+### Microsoft Account Login Flow
+
+For MSA accounts, authentication involves 7 sequential steps:
+
+#### 1. MSA Step - OAuth2 Authorization
+
+```cpp
+class MSAStep : public AuthStep {
+private:
+    QOAuth2AuthorizationCodeFlow m_oauth2;
+    QString m_clientId;
+    bool m_silent;  // Refresh vs new login
+};
+```
+
+*Source: `launcher/minecraft/auth/steps/MSAStep.h:42-59`*
+
+This step:
+- Opens browser for user consent
+- Obtains Microsoft access token
+- Handles OAuth2 callback
+
+**Browser Authorization:**
+```cpp
+signals:
+    void authorizeWithBrowser(const QUrl& url);
+```
+
+The URL contains:
+- Client ID (from Prism Launcher registration)
+- Scopes: `XboxLive.signin` and `XboxLive.offline_access`
+- Redirect URI for OAuth callback
+
+<Info>
+**Device Code Flow**: For headless systems or when browser access is limited, an alternative device code flow is available:
+```cpp
+shared_qobject_ptr<AuthFlow> login(bool useDeviceCode = true);
+```
+This provides a code the user enters on another device.
+</Info>
+
+#### 2. Xbox User Step - Xbox Live User Token
+
+Converts MSA token to Xbox Live user token:
+- Calls Xbox Live authentication service
+- Obtains user hash (uhs)
+- Gets Xbox user token
+
+#### 3. Xbox Authorization Step - Xbox Live XSTS Token
+
+Obtains Xbox Live Security Token Service (XSTS) token:
+- Uses Xbox user token
+- Requests "rp://api.minecraftservices.com/" as relying party
+- Gets XSTS token and user claims
+
+<Note>
+This step can fail with specific errors:
+- `2148916233` - Account doesn't have an Xbox account
+- `2148916235` - Xbox Live not available in user's region  
+- `2148916236` - Adult verification required
+- `2148916238` - Account is a child without parental consent
+</Note>
+
+#### 4. Launcher Login Step - Minecraft Token
+
+Exchanges Xbox Live tokens for Minecraft access token:
+
+```http
+POST https://api.minecraftservices.com/launcher/login
+Content-Type: application/json
+
+{
+  "platform": "PC_LAUNCHER",
+  "xtoken": "XBL3.0 x=<userhash>;<xsts_token>"
+}
+```
+
+Response contains:
+- Minecraft access token
+- Token expiration time
+
+#### 5. Entitlements Step - Ownership Check
+
+Verifies the account owns Minecraft:
+
+```http
+GET https://api.minecraftservices.com/entitlements/license?requestId=<uuid>
+Authorization: Bearer <minecraft_token>
+```
+
+Checks for:
+- `game_minecraft` entitlement (Java Edition)
+- `product_minecraft` entitlement (older format)
+
+Sets `ownsMinecraft` flag in account data.
+
+#### 6. Profile Step - Minecraft Profile
+
+Fetches the Minecraft profile (UUID and username):
+
+```http
+GET https://api.minecraftservices.com/minecraft/profile
+Authorization: Bearer <minecraft_token>
+```
+
+Response:
+```json
+{
+  "id": "<uuid>",
+  "name": "<username>",
+  "skins": [...],
+  "capes": [...]
+}
+```
+
+#### 7. Get Skin Step - Download Skin
+
+Downloads the player's skin texture:
+- Parses skin URL from profile
+- Downloads skin image
+- Caches for avatar display
+
+### Authentication Sequence Diagram
+
+```
+User → MSAStep: Login
+  MSAStep → Browser: Open OAuth URL
+  Browser → MSAStep: Authorization Code
+  MSAStep → Microsoft: Exchange for Token
+  
+MSAStep → XboxUserStep: MSA Token
+  XboxUserStep → Xbox: Get User Token
+  
+XboxUserStep → XboxAuthStep: User Token  
+  XboxAuthStep → Xbox: Get XSTS Token
+  
+XboxAuthStep → LauncherLoginStep: XSTS Token
+  LauncherLoginStep → Minecraft: Get MC Token
+  
+LauncherLoginStep → EntitlementsStep: MC Token
+  EntitlementsStep → Minecraft: Check Ownership
+  
+EntitlementsStep → ProfileStep: If Owns
+  ProfileStep → Minecraft: Get Profile
+  
+ProfileStep → GetSkinStep: Profile Data
+  GetSkinStep → Minecraft: Download Skin
+  
+GetSkinStep → User: Authenticated!
+```
+
+## AuthStep - Base Class
+
+All authentication steps inherit from `AuthStep`:
+
+```cpp
+class AuthStep : public QObject {
+protected:
+    AccountData* m_data;  // Shared data between steps
+    
+public:
+    virtual QString describe() = 0;  // Human-readable description
+    virtual void perform() = 0;       // Execute the step
+    virtual void abort() {}           // Cancel if possible
+    
+signals:
+    void finished(AccountTaskState resultingState, QString message);
+};
+```
+
+*Source: `launcher/minecraft/auth/AuthStep.h:23-44`*
+
+Each step:
+1. Performs its authentication operation
+2. Updates `AccountData` with new tokens/information
+3. Emits `finished()` with success/failure state
+4. AuthFlow automatically proceeds to next step on success
+
+## AccountList - Account Management
+
+The `AccountList` class manages the collection of all accounts:
+
+```cpp
+class AccountList : public QAbstractListModel {
+private:
+    QList<MinecraftAccountPtr> m_accounts;
+    MinecraftAccountPtr m_defaultAccount;
+    QList<QString> m_refreshQueue;
+    shared_qobject_ptr<AuthFlow> m_currentTask;
+    
+public:
+    void addAccount(MinecraftAccountPtr account);
+    void removeAccount(QModelIndex index);
+    MinecraftAccountPtr defaultAccount() const;
+    void setDefaultAccount(MinecraftAccountPtr account);
+    
+    // Automatic refresh
+    void requestRefresh(QString accountId);
+    void queueRefresh(QString accountId);
+};
+```
+
+*Source: `launcher/minecraft/auth/AccountList.h:50-173`*
+
+### Automatic Token Refresh
+
+The account list automatically refreshes expiring tokens:
+
+```cpp
+void fillQueue();  // Called on timer (hourly)
+```
+
+The refresh system:
+- Checks all accounts for expiring tokens
+- Queues refresh operations  
+- Processes one refresh at a time
+- Updates account status on completion
+
+<Accordion title="Refresh Priority">
+```cpp
+void requestRefresh(QString accountId);  // Front of queue (user-initiated)
+void queueRefresh(QString accountId);    // Back of queue (automatic)
+```
+
+User-initiated refreshes (e.g., before launch) are prioritized over automatic background refreshes.
+</Accordion>
+
+## Session Management
+
+When launching an instance, an `AuthSession` is created from the account:
+
+```cpp
+class MinecraftAccount {
+    void fillSession(AuthSessionPtr session);
+};
+
+struct AuthSession {
+    QString player_name;      // Minecraft username
+    QString uuid;             // Player UUID
+    QString access_token;     // Minecraft access token
+    QString client_token;     // Client identifier
+    QString user_type;        // "msa" or "offline"
+    
+    // Additional data
+    QJsonObject user_properties;
+    bool demo_mode;
+};
+```
+
+The session is passed to the game process via launch arguments:
+
+```bash
+--username ${auth_player_name}
+--uuid ${auth_uuid}  
+--accessToken ${auth_access_token}
+--userType ${user_type}
+```
+
+## Security Considerations
+
+### Token Storage
+
+- Tokens stored in platform-specific secure storage when available
+- Fallback to obfuscated JSON storage
+- File permissions restricted (chmod 600)
+
+### Token Lifetime
+
+- **MSA Tokens** - Short-lived access tokens (~1 hour), long-lived refresh tokens (~90 days)
+- **Xbox Tokens** - Temporary tokens (~24 hours)
+- **Minecraft Tokens** - Session tokens (~24 hours)
+
+<Note>
+Refresh tokens can be invalidated by:
+- Password changes
+- Security incidents
+- Explicit revocation by user
+- Prolonged inactivity (90+ days)
+</Note>
+
+### Client ID
+
+Prism Launcher uses its own registered Microsoft Azure AD application:
+
+```cpp
+QString Application::getMSAClientID() {
+    // Returns Prism Launcher's registered client ID
+}
+```
+
+This is necessary to:
+- Identify the application to Microsoft
+- Request appropriate scopes
+- Comply with Microsoft authentication policies
+
+## Error Handling
+
+Authentication errors are categorized:
+
+### Soft Failures
+
+- Token refresh fails but cached data still valid
+- Can still launch in offline mode
+- User should re-authenticate when possible
+
+### Hard Failures
+
+- All tokens invalid
+- Must re-authenticate to launch
+- Account marked as "offline"
+
+### Account Gone
+
+- Account deleted or banned
+- Cannot be recovered
+- Should be removed from account list
+
+## UI Integration
+
+The authentication UI provides:
+
+- **Account List Dialog** - Manage accounts, add/remove, set default
+- **Browser Integration** - Open system browser for OAuth
+- **Progress Dialogs** - Show authentication step progress
+- **Error Dialogs** - Display specific error messages
+
+### Account Selection at Launch
+
+When launching an instance:
+
+```cpp
+class LaunchController {
+    void decideAccount();  // Select or prompt for account
+    bool reauthenticateAccount(MinecraftAccountPtr account, QString reason);
+};
+```
+
+The controller:
+1. Uses instance-specific account if set
+2. Falls back to global default account
+3. Checks if account needs refresh
+4. Prompts for re-authentication if needed
+5. Creates auth session for launch
+
+## Offline Mode
+
+When authentication fails or no account is available:
+
+```cpp
+MinecraftAccountPtr createOffline(const QString& username);
+```
+
+Offline accounts:
+- Generate deterministic UUID from username
+- No server authentication
+- Local-only gameplay
+- Compatible with LAN multiplayer
+
+## Future Considerations
+
+- **Microsoft Account Profiles** - Multiple profiles per account (not yet implemented by Mojang)
+- **Cape Support** - Enhanced cape display and selection
+- **Skin Upload** - Direct skin upload through launcher

@@ -1,0 +1,518 @@
+---
+title: 'Network and API Classes'
+description: 'HTTP networking, caching, and download management'
+icon: 'network-wired'
+---
+
+## HttpMetaCache
+
+Manages HTTP metadata cache for efficient file downloads and validation.
+
+**Class:** `HttpMetaCache`  
+**Header:** `launcher/net/HttpMetaCache.h`  
+**Inherits:** `QObject`
+
+### Constructor
+
+```cpp
+HttpMetaCache(QString path = QString());
+```
+
+<ParamField path="path" type="QString">
+  Path to the cache index file. If empty, cache is memory-only.
+</ParamField>
+
+### Cache Entry Management
+
+<ResponseField name="getEntry(QString base, QString resource_path)" type="MetaEntryPtr">
+  Retrieves an entry from cache without validation. Use only for specific caching needs.
+</ResponseField>
+
+<ResponseField name="resolveEntry(QString base, QString resource_path, QString expected_etag)" type="MetaEntryPtr">
+  Gets an entry and verifies it isn't stale. This is the recommended method for most use cases.
+</ResponseField>
+
+<ResponseField name="updateEntry(MetaEntryPtr stale_entry)" type="bool">
+  Updates a previously resolved stale entry. Returns true on success.
+</ResponseField>
+
+### Eviction
+
+<ResponseField name="evictEntry(MetaEntryPtr entry)" type="bool">
+  Removes a specific entry from the cache. Returns true on success.
+</ResponseField>
+
+<ResponseField name="evictAll()" type="bool">
+  Clears all entries from the cache. Returns true on success.
+</ResponseField>
+
+### Base Path Management
+
+<ResponseField name="addBase(QString base, QString base_root)" type="void">
+  Registers a base path for a cache category (e.g., "assets", "libraries").
+</ResponseField>
+
+<ResponseField name="getBasePath(QString base)" type="QString">
+  Returns the root path for a registered base.
+</ResponseField>
+
+### Persistence
+
+<ResponseField name="Load()" type="void">
+  Loads cache entries from the index file.
+</ResponseField>
+
+<ResponseField name="SaveNow()" type="void">
+  Immediately saves cache entries to the index file.
+</ResponseField>
+
+<ResponseField name="SaveEventually()" type="void">
+  Schedules a save operation to occur later (batched saves).
+</ResponseField>
+
+### Example Usage
+
+```cpp
+#include "net/HttpMetaCache.h"
+#include "Application.h"
+
+// Get the global cache
+HttpMetaCache* cache = APPLICATION->metacache();
+
+// Add a base path
+cache->addBase("assets", "/path/to/assets");
+
+// Resolve an entry (checks if cached file is still valid)
+MetaEntryPtr entry = cache->resolveEntry(
+    "assets",
+    "minecraft/sounds/ambient/cave/cave1.ogg"
+);
+
+if (entry && !entry->isStale()) {
+    qDebug() << "Using cached file:" << entry->getFullPath();
+} else {
+    qDebug() << "Need to download file";
+    // After download:
+    entry->setETag(response_etag);
+    entry->setStale(false);
+    cache->updateEntry(entry);
+}
+
+// Save cache
+cache->SaveEventually();
+```
+
+---
+
+## MetaEntry
+
+Represents a single cached file with metadata.
+
+**Class:** `MetaEntry`  
+**Header:** `launcher/net/HttpMetaCache.h`
+
+### Staleness
+
+<ResponseField name="isStale()" type="bool">
+  Returns true if the entry is stale and should be re-downloaded.
+</ResponseField>
+
+<ResponseField name="setStale(bool stale)" type="void">
+  Marks the entry as stale or fresh.
+</ResponseField>
+
+### File Path
+
+<ResponseField name="getFullPath()" type="QString">
+  Returns the full filesystem path to the cached file.
+</ResponseField>
+
+### HTTP Validation
+
+<ResponseField name="getETag()" type="QString">
+  Returns the HTTP ETag for cache validation.
+</ResponseField>
+
+<ResponseField name="setETag(QString etag)" type="void">
+  Sets the HTTP ETag.
+</ResponseField>
+
+<ResponseField name="getMD5Sum()" type="QString">
+  Returns the MD5 checksum of the file.
+</ResponseField>
+
+<ResponseField name="setMD5Sum(QString md5sum)" type="void">
+  Sets the MD5 checksum.
+</ResponseField>
+
+### Timestamps
+
+<ResponseField name="getRemoteChangedTimestamp()" type="QString">
+  Returns the remote file's last modified timestamp (RFC 2822 format).
+</ResponseField>
+
+<ResponseField name="setRemoteChangedTimestamp(QString timestamp)" type="void">
+  Sets the remote changed timestamp.
+</ResponseField>
+
+<ResponseField name="setLocalChangedTimestamp(qint64 timestamp)" type="void">
+  Sets the local file's changed timestamp.
+</ResponseField>
+
+### Cache Expiration
+
+<ResponseField name="getCurrentAge()" type="qint64">
+  Returns the current age of the cached entry.
+</ResponseField>
+
+<ResponseField name="setCurrentAge(qint64 age)" type="void">
+  Sets the current age.
+</ResponseField>
+
+<ResponseField name="getMaximumAge()" type="qint64">
+  Returns the maximum age before expiration.
+</ResponseField>
+
+<ResponseField name="setMaximumAge(qint64 age)" type="void">
+  Sets the maximum age.
+</ResponseField>
+
+<ResponseField name="isExpired(qint64 offset)" type="bool">
+  Returns true if the entry has expired (accounting for offset).
+</ResponseField>
+
+<ResponseField name="makeEternal(bool eternal)" type="void">
+  Makes the entry never expire (eternal = true) or expire normally (eternal = false).
+</ResponseField>
+
+<ResponseField name="isEternal()" type="bool">
+  Returns true if the entry never expires.
+</ResponseField>
+
+---
+
+## NetJob
+
+Manages concurrent network operations (downloads, uploads).
+
+**Class:** `NetJob`  
+**Header:** `launcher/net/NetJob.h`  
+**Inherits:** `ConcurrentTask`
+
+### Constructor
+
+```cpp
+explicit NetJob(
+    QString job_name,
+    QNetworkAccessManager* network,
+    int max_concurrent = -1
+);
+```
+
+<ParamField path="job_name" type="QString">
+  Human-readable name for the job.
+</ParamField>
+
+<ParamField path="network" type="QNetworkAccessManager*">
+  Network manager to use for requests.
+</ParamField>
+
+<ParamField path="max_concurrent" type="int">
+  Maximum concurrent requests (-1 for unlimited).
+</ParamField>
+
+### Adding Actions
+
+<ResponseField name="addNetAction(Net::NetRequest::Ptr action)" type="bool">
+  Adds a network request to the job. Returns true on success.
+</ResponseField>
+
+<ResponseField name="size()" type="int">
+  Returns the number of network actions in the job.
+</ResponseField>
+
+### Failure Handling
+
+<ResponseField name="getFailedActions()" type="QList<Net::NetRequest*>">
+  Returns list of failed network requests.
+</ResponseField>
+
+<ResponseField name="getFailedFiles()" type="QList<QString>">
+  Returns list of file paths that failed to download.
+</ResponseField>
+
+<ResponseField name="setAskRetry(bool askRetry)" type="void">
+  Sets whether to prompt the user to retry failed downloads.
+</ResponseField>
+
+### Control
+
+<ResponseField name="abort()" type="bool">
+  Aborts the network job. Returns true if successful.
+</ResponseField>
+
+<ResponseField name="canAbort()" type="bool">
+  Returns true if the job can be aborted.
+</ResponseField>
+
+### Example Usage
+
+```cpp
+#include "net/NetJob.h"
+#include "net/Download.h"
+#include "Application.h"
+
+// Create a network job
+NetJob* job = new NetJob("Download assets", APPLICATION->network());
+
+// Add downloads
+for (const QString& url : urls) {
+    auto dl = Net::Download::makeFile(
+        QUrl(url),
+        "/path/to/destination.jar"
+    );
+    job->addNetAction(dl);
+}
+
+// Connect signals
+connect(job, &NetJob::succeeded, []() {
+    qDebug() << "All downloads completed";
+});
+
+connect(job, &NetJob::failed, [job](QString reason) {
+    qDebug() << "Job failed:" << reason;
+    for (auto* failed : job->getFailedActions()) {
+        qDebug() << "  Failed:" << failed->url().toString();
+    }
+});
+
+connect(job, &NetJob::progress, [](qint64 current, qint64 total) {
+    qDebug() << "Progress:" << current << "/" << total;
+});
+
+// Start the job
+job->start();
+```
+
+---
+
+## Net::Download
+
+Handles individual file downloads with caching support.
+
+**Class:** `Net::Download`  
+**Namespace:** `Net`  
+**Header:** `launcher/net/Download.h`  
+**Inherits:** `Net::NetRequest`
+
+### Factory Methods
+
+<Tabs>
+  <Tab title="Cached Download">
+    ```cpp
+    static Download::Ptr makeCached(
+        QUrl url,
+        MetaEntryPtr entry,
+        Options options = Option::NoOptions
+    );
+    ```
+    Creates a download that uses the HTTP metadata cache.
+  </Tab>
+  
+  <Tab title="File Download">
+    ```cpp
+    static Download::Ptr makeFile(
+        QUrl url,
+        QString path,
+        Options options = Option::NoOptions
+    );
+    ```
+    Creates a download that saves to a file.
+  </Tab>
+  
+  <Tab title="Byte Array Download">
+    ```cpp
+    static std::pair<Download::Ptr, QByteArray*> makeByteArray(
+        QUrl url,
+        Options options = Option::NoOptions
+    );
+    ```
+    Creates a download that returns data in a QByteArray. The array lives as long as the Download object.
+  </Tab>
+</Tabs>
+
+### Example Usage
+
+```cpp
+#include "net/Download.h"
+#include "net/NetJob.h"
+
+// Download to file
+auto dl = Net::Download::makeFile(
+    QUrl("https://example.com/mod.jar"),
+    "/path/to/mods/mod.jar"
+);
+
+// Download with caching
+MetaEntryPtr entry = cache->resolveEntry("downloads", "mod.jar");
+auto cached_dl = Net::Download::makeCached(
+    QUrl("https://example.com/mod.jar"),
+    entry
+);
+
+// Download to memory
+auto [dl_mem, data] = Net::Download::makeByteArray(
+    QUrl("https://example.com/api/version.json")
+);
+
+connect(dl_mem.get(), &Task::succeeded, [data]() {
+    QJsonDocument doc = QJsonDocument::fromJson(*data);
+    qDebug() << "JSON:" << doc.object();
+});
+
+// Add to job
+NetJob* job = new NetJob("Downloads", network);
+job->addNetAction(dl);
+job->addNetAction(cached_dl);
+job->addNetAction(dl_mem);
+job->start();
+```
+
+---
+
+## Net::NetRequest
+
+Base class for all network requests.
+
+**Class:** `Net::NetRequest`  
+**Namespace:** `Net`  
+**Header:** `launcher/net/NetRequest.h`  
+**Inherits:** `Task`
+
+### Options
+
+```cpp
+enum class Option {
+    NoOptions = 0,
+    AcceptLocalFiles = 1,  // Allow file:// URLs
+    MakeEternal = 2,       // Cache entry never expires
+    AutoRetry = 4          // Auto-retry on HTTP 429
+};
+Q_DECLARE_FLAGS(Options, Option)
+```
+
+### Configuration
+
+<ResponseField name="setUrl(QUrl url)" type="void">
+  Sets the request URL.
+</ResponseField>
+
+<ResponseField name="url()" type="QUrl">
+  Returns the request URL.
+</ResponseField>
+
+<ResponseField name="setNetwork(QNetworkAccessManager* network)" type="void">
+  Sets the network access manager.
+</ResponseField>
+
+<ResponseField name="addValidator(Validator* v)" type="void">
+  Adds a validator to check the downloaded data.
+</ResponseField>
+
+<ResponseField name="addHeaderProxy(std::unique_ptr<Net::HeaderProxy> proxy)" type="void">
+  Adds a header proxy for modifying request headers.
+</ResponseField>
+
+### Auto-Retry
+
+<ResponseField name="enableAutoRetry(bool enable)" type="void">
+  Enables automatic retry on HTTP 429 (Too Many Requests) errors.
+</ResponseField>
+
+### Response Information
+
+<ResponseField name="replyStatusCode()" type="int">
+  Returns the HTTP status code.
+</ResponseField>
+
+<ResponseField name="error()" type="QNetworkReply::NetworkError">
+  Returns the network error code.
+</ResponseField>
+
+<ResponseField name="errorString()" type="QString">
+  Returns the error description.
+</ResponseField>
+
+### Control
+
+<ResponseField name="abort()" type="bool">
+  Aborts the request. Returns true on success.
+</ResponseField>
+
+<ResponseField name="canAbort()" type="bool">
+  Returns true if the request can be aborted.
+</ResponseField>
+
+### Example Usage
+
+```cpp
+#include "net/NetRequest.h"
+#include "net/Download.h"
+
+auto dl = Net::Download::makeFile(
+    QUrl("https://api.example.com/data.json"),
+    "/tmp/data.json",
+    Net::NetRequest::Option::AutoRetry
+);
+
+// Enable auto-retry for rate limiting
+dl->enableAutoRetry(true);
+
+connect(dl.get(), &Task::succeeded, [dl]() {
+    qDebug() << "Downloaded successfully";
+    qDebug() << "Status code:" << dl->replyStatusCode();
+});
+
+connect(dl.get(), &Task::failed, [dl](QString reason) {
+    qDebug() << "Download failed:" << reason;
+    qDebug() << "Error:" << dl->errorString();
+});
+
+dl->start();
+```
+
+### Common Patterns
+
+<Expandable title="Downloading with Progress">
+  ```cpp
+  auto dl = Net::Download::makeFile(url, path);
+  
+  connect(dl.get(), &Task::progress, [](qint64 current, qint64 total) {
+      int percent = (total > 0) ? (current * 100 / total) : 0;
+      qDebug() << "Progress:" << percent << "%";
+  });
+  
+  dl->start();
+  ```
+</Expandable>
+
+<Expandable title="Batch Downloads with NetJob">
+  ```cpp
+  NetJob* job = new NetJob("Batch download", network, 4); // max 4 concurrent
+  
+  for (const auto& [url, path] : downloads) {
+      auto dl = Net::Download::makeFile(url, path);
+      job->addNetAction(dl);
+  }
+  
+  connect(job, &Task::finished, [job]() {
+      if (job->wasSuccessful()) {
+          qDebug() << "All downloads completed";
+      } else {
+          qDebug() << "Some downloads failed:" << job->getFailedFiles();
+      }
+  });
+  
+  job->start();
+  ```
+</Expandable>

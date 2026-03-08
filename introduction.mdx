@@ -1,0 +1,163 @@
+---
+title: Introduction to Prism Launcher
+description: A custom Minecraft launcher for managing multiple installations with ease
+---
+
+# Introduction to Prism Launcher
+
+Prism Launcher is a custom launcher for Minecraft that allows you to easily manage multiple installations of Minecraft at once. This is a **fork** of the MultiMC Launcher and is **not** endorsed by it.
+
+<Info>
+Prism Launcher is free and open-source software licensed under GPL-3.0-only, ensuring transparency and community-driven development.
+</Info>
+
+## What is Prism Launcher?
+
+Prism Launcher provides a flexible, powerful interface for managing your Minecraft instances. Each instance is a separate, isolated installation of Minecraft with its own:
+
+- Game version
+- Mod loaders (Forge, Fabric, Quilt, NeoForge)
+- Resource packs and shader packs
+- Configuration files
+- Save data
+- Screenshots and logs
+
+This separation means you can maintain different modded setups, vanilla versions, or modpacks simultaneously without conflicts.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Multiple Instances" icon="layer-group">
+    Create and manage unlimited Minecraft installations, each with its own configuration, mods, and game version.
+  </Card>
+  
+  <Card title="Mod Platform Integration" icon="puzzle-piece">
+    Direct integration with CurseForge and Modrinth for easy mod downloading and modpack installation.
+  </Card>
+  
+  <Card title="Java Management" icon="coffee">
+    Built-in Java downloader and version manager to ensure you have the right Java version for each Minecraft release.
+  </Card>
+  
+  <Card title="Account Management" icon="user">
+    Support for multiple Microsoft accounts with secure authentication through Microsoft Identity Platform.
+  </Card>
+</CardGroup>
+
+### Advanced Features
+
+- **Mod Loader Support**: First-class support for Forge, Fabric, Quilt, and NeoForge
+- **Resource Management**: Easy installation and management of resource packs, shader packs, and data packs
+- **Export/Import**: Package and share your instances as `.mrpack` files
+- **Screenshot Management**: Built-in screenshot viewer and organizer
+- **Log Viewer**: Detailed game logs with syntax highlighting for debugging
+- **Custom Commands**: Run pre-launch and post-exit commands
+- **Memory Management**: Per-instance memory allocation settings
+- **Java Arguments**: Customize JVM arguments for optimal performance
+
+## Why Use Prism Launcher?
+
+### Compared to the Official Minecraft Launcher
+
+<CardGroup cols={2}>
+  <Card title="Better Organization" icon="folder-tree">
+    Unlike the official launcher's flat profile system, Prism Launcher provides true instance isolation with organized folders.
+  </Card>
+  
+  <Card title="Modding Made Easy" icon="wand-magic-sparkles">
+    No manual file copying - install mods and modpacks with a few clicks through integrated platforms.
+  </Card>
+  
+  <Card title="Performance Control" icon="gauge-high">
+    Fine-tune memory allocation and JVM arguments per instance for optimal performance.
+  </Card>
+  
+  <Card title="Open Source" icon="code">
+    Fully transparent, community-driven development with no telemetry or data collection.
+  </Card>
+</CardGroup>
+
+### Perfect For
+
+- **Modpack Players**: Test and play multiple modpacks without conflicts
+- **Mod Developers**: Maintain separate testing environments for different mod loaders
+- **Server Administrators**: Match your local setup to different server configurations
+- **Casual Players**: Switch between vanilla versions and modded setups effortlessly
+- **Content Creators**: Manage different recording setups with optimized settings
+
+## Technical Highlights
+
+Prism Launcher is built with modern technologies:
+
+```cpp
+// Built with C++20 and Qt 6
+set(CMAKE_CXX_STANDARD 20)
+find_package(Qt6 6.4 REQUIRED COMPONENTS 
+    Core Widgets Concurrent Network Test Xml NetworkAuth OpenGL)
+```
+
+<Note>
+**Current Version**: 11.0.0 (as defined in `CMakeLists.txt:176-178`)
+</Note>
+
+### Cross-Platform Support
+
+Prism Launcher runs on:
+
+- **Windows** (7 and later)
+- **Linux** (all major distributions)
+- **macOS** (Intel and Apple Silicon)
+
+With native packaging available through:
+- Flatpak
+- AppImage
+- Snap
+- Homebrew (macOS)
+- Distribution repositories (Arch AUR, Fedora, Debian, etc.)
+
+## Community & Support
+
+Prism Launcher has a vibrant, helpful community:
+
+- **Discord**: Join thousands of users and get real-time help
+- **Matrix Space**: Open-source alternative to Discord
+- **Reddit**: r/PrismLauncher for discussions and news
+- **GitHub**: Report issues, request features, and contribute
+
+<Warning>
+Prism Launcher is not affiliated with Mojang Studios or Microsoft. It is an independent, community-driven project.
+</Warning>
+
+## Getting Started
+
+Ready to get started? Follow these steps:
+
+<Steps>
+  <Step title="Install Prism Launcher">
+    Download the appropriate installer for your operating system from the [official website](https://prismlauncher.org/download).
+  </Step>
+  
+  <Step title="Add Your Account">
+    Sign in with your Microsoft account to access Minecraft.
+  </Step>
+  
+  <Step title="Create an Instance">
+    Set up your first Minecraft instance with your preferred version and mod loader.
+  </Step>
+  
+  <Step title="Launch and Play">
+    Start the game and enjoy your customized Minecraft experience!
+  </Step>
+</Steps>
+
+## License
+
+All launcher code is available under the **GPL-3.0-only** license, ensuring it remains free and open-source. The logo and related assets are under the **CC BY-SA 4.0** license.
+
+<Info>
+When building from source, you must either use your own API keys or set them to empty strings for Microsoft authentication and CurseForge integration (see `CMakeLists.txt:254-260`).
+</Info>
+
+---
+
+**Next Steps**: Check out the [Installation Guide](/installation) to get Prism Launcher set up on your system, or jump to the [Quick Start Guide](/quickstart) to create your first instance.

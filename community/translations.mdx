@@ -1,0 +1,102 @@
+---
+title: Contributing Translations
+description: Help translate Prism Launcher into your language
+---
+
+Prism Launcher is used by people all around the world, and translations help make it accessible to everyone. We welcome contributions from translators of all experience levels.
+
+## Translation Platform
+
+All translation efforts for Prism Launcher are hosted on **Weblate**, a web-based translation platform that makes contributing easy.
+
+<Card title="Translate on Weblate" icon="language" href="https://hosted.weblate.org/projects/prismlauncher/launcher/">
+  Start translating Prism Launcher on our Weblate project
+</Card>
+
+## Getting Started
+
+### 1. Create a Weblate Account
+
+Visit [Weblate](https://hosted.weblate.org/) and create a free account. You can sign up using:
+- Email address
+- GitHub account
+- Other OAuth providers
+
+### 2. Choose Your Language
+
+Navigate to the [Prism Launcher project](https://hosted.weblate.org/projects/prismlauncher/launcher/) and select the language you want to translate. If your language isn't listed, you can request it to be added.
+
+### 3. Start Translating
+
+Weblate provides an intuitive interface where you can:
+- See the original English text
+- Enter your translation
+- View context and comments
+- See suggestions from translation memory
+- Review translations from other contributors
+
+## Translation Guidelines
+
+<Accordion title="Keep the tone consistent">
+  Prism Launcher uses a friendly but professional tone. Try to match this style in your translations rather than being overly formal or too casual.
+</Accordion>
+
+<Accordion title="Preserve formatting and placeholders">
+  Many strings contain special formatting like `%1`, `{0}`, or HTML tags. Make sure these are preserved in your translation:
+  
+  - `%1` - Placeholder for dynamic content (keep as-is)
+  - `{variable}` - Variable names (keep as-is)
+  - `<b>text</b>` - HTML formatting (translate the text, keep the tags)
+</Accordion>
+
+<Accordion title="Consider context">
+  Weblate shows context for most strings. Use this to understand where the text appears in the application. A word might need different translations depending on whether it's a button label, menu item, or longer description.
+</Accordion>
+
+<Accordion title="Stay concise for UI elements">
+  Button labels and menu items should be short and clear. If the English text is brief, try to keep your translation similarly concise to ensure it fits in the UI.
+</Accordion>
+
+<Accordion title="Don't translate technical terms inconsistently">
+  Some technical terms like "instance", "modpack", or "Java" may have established translations in your language's gaming/tech community. Use these standard terms for consistency.
+</Accordion>
+
+## Translation Resources
+
+For detailed information about the translation process and guidelines, visit:
+
+<Card icon="github" href="https://github.com/PrismLauncher/Translations">
+  **Prism Launcher Translations Repository**
+  
+  Additional documentation, guidelines, and discussion about translations
+</Card>
+
+## Translation Updates
+
+Translations from Weblate are regularly synchronized with the Prism Launcher codebase. Your contributions will be included in the next release after they're approved.
+
+Translation files are automatically downloaded from:
+```
+https://i18n.prismlauncher.org/
+```
+
+<Note>
+Changes you make on Weblate may take some time to appear in development builds, as they go through a review and synchronization process.
+</Note>
+
+## Getting Help with Translations
+
+If you have questions about translating Prism Launcher:
+
+1. **Check the Weblate comments** - Other translators may have discussed the string
+2. **Visit the Translations repository** - [https://github.com/PrismLauncher/Translations](https://github.com/PrismLauncher/Translations)
+3. **Ask in community spaces** - Join our [Discord](https://prismlauncher.org/discord) or [Matrix](https://prismlauncher.org/matrix) to discuss with other translators
+4. **Open an issue** - For complex questions, create an issue on the Translations repository
+
+## Acknowledgments
+
+We're grateful to Weblate for hosting our translation efforts as part of their support for open source projects.
+
+<Note>
+All translations are subject to review to ensure quality and consistency. Thank you for your patience and contributions to making Prism Launcher accessible to more users!
+</Note>

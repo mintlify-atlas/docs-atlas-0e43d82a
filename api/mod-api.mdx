@@ -1,0 +1,548 @@
+---
+title: 'Mod Management API'
+description: 'Resource and mod folder models for managing game resources'
+icon: 'puzzle-piece'
+---
+
+## ResourceFolderModel
+
+Base model for managing external resources like mods, resource packs, and shaders.
+
+**Class:** `ResourceFolderModel`  
+**Header:** `launcher/minecraft/mod/ResourceFolderModel.h`  
+**Inherits:** `QAbstractListModel`
+
+### Constructor
+
+```cpp
+ResourceFolderModel(
+    const QDir& dir,
+    BaseInstance* instance,
+    bool is_indexed,
+    bool create_dir,
+    QObject* parent = nullptr
+);
+```
+
+<ParamField path="dir" type="QDir">
+  Directory containing the resources.
+</ParamField>
+
+<ParamField path="instance" type="BaseInstance*">
+  The instance this model belongs to.
+</ParamField>
+
+<ParamField path="is_indexed" type="bool">
+  Whether resources have metadata indexing.
+</ParamField>
+
+<ParamField path="create_dir" type="bool">
+  Whether to create the directory if it doesn't exist.
+</ParamField>
+
+### Resource Access
+
+<ResponseField name="size()" type="qsizetype">
+  Returns the number of resources in the model.
+</ResponseField>
+
+<ResponseField name="empty()" type="bool">
+  Returns true if the model has no resources.
+</ResponseField>
+
+<ResponseField name="at(int index)" type="Resource&">
+  Returns the resource at the specified index.
+</ResponseField>
+
+<ResponseField name="find(QString id)" type="Resource::Ptr">
+  Finds a resource by its internal ID.
+</ResponseField>
+
+<ResponseField name="allResources()" type="QList<Resource*>">
+  Returns all resources as a list.
+</ResponseField>
+
+<ResponseField name="selectedResources(const QModelIndexList& indexes)" type="QList<Resource*>">
+  Returns resources for the given model indexes.
+</ResponseField>
+
+### File Operations
+
+<Tabs>
+  <Tab title="Install">
+    ```cpp
+    bool installResource(QString path);
+    ```
+    Installs a resource from a file path, moving it to the instance directory.
+    
+    ```cpp
+    void installResourceWithFlameMetadata(
+        QString path,
+        ModPlatform::IndexedVersion& vers
+    );
+    ```
+    Installs a resource with CurseForge metadata.
+  </Tab>
+  
+  <Tab title="Uninstall">
+    ```cpp
+    bool uninstallResource(const QString& file_name, bool preserve_metadata = false);
+    ```
+    Removes a resource by filename.
+    
+    ```cpp
+    bool deleteResources(const QModelIndexList& indexes);
+    ```
+    Deletes multiple resources.
+    
+    ```cpp
+    void deleteMetadata(const QModelIndexList& indexes);
+    ```
+    Deletes only the metadata for resources.
+  </Tab>
+  
+  <Tab title="Enable/Disable">
+    ```cpp
+    enum class EnableAction { ENABLE, DISABLE, TOGGLE };
+    
+    bool setResourceEnabled(const QModelIndexList& indexes, EnableAction action);
+    ```
+    Enables, disables, or toggles resources.
+  </Tab>
+</Tabs>
+
+### Updating and Parsing
+
+<ResponseField name="update()" type="bool">
+  Creates and starts an update task to refresh the resource list. Returns false if update is already running.
+</ResponseField>
+
+<ResponseField name="resolveResource(Resource::Ptr res)" type="void">
+  Creates a parse task for a resource to load its metadata.
+</ResponseField>
+
+<ResponseField name="hasPendingParseTasks()" type="bool">
+  Returns true if there are pending parse tasks.
+</ResponseField>
+
+### File System Watching
+
+<ResponseField name="startWatching()" type="bool">
+  Starts watching the resource directory for changes. Returns true on success.
+</ResponseField>
+
+<ResponseField name="stopWatching()" type="bool">
+  Stops watching the directory. Returns true on success.
+</ResponseField>
+
+### Sorting and Filtering
+
+```cpp
+enum class SortType {
+    NAME, DATE, VERSION, ENABLED,
+    PACK_FORMAT, PROVIDER, SIZE, SIDE,
+    MC_VERSIONS, LOADERS, RELEASE_TYPE,
+    REQUIRES, REQUIRED_BY
+};
+```
+
+<ResponseField name="createFilterProxyModel(QObject* parent)" type="QSortFilterProxyModel*">
+  Creates a proxy model for filtering and sorting.
+</ResponseField>
+
+<ResponseField name="columnToSortKey(size_t column)" type="SortType">
+  Converts a column index to its sort type.
+</ResponseField>
+
+### Model Columns
+
+```cpp
+enum Columns {
+    ActiveColumn = 0,
+    NameColumn,
+    DateColumn,
+    ProviderColumn,
+    SizeColumn,
+    NUM_COLUMNS
+};
+```
+
+### Signals
+
+```cpp
+signals:
+    void updateFinished();
+    void parseFinished();
+```
+
+### Example Usage
+
+```cpp
+#include "minecraft/mod/ResourceFolderModel.h"
+
+ResourceFolderModel* model = /* ... */;
+
+// Update resource list
+if (model->update()) {
+    connect(model, &ResourceFolderModel::updateFinished, []() {
+        qDebug() << "Resources updated";
+    });
+}
+
+// Install a resource
+if (model->installResource("/path/to/resource.jar")) {
+    qDebug() << "Resource installed";
+}
+
+// Enable/disable resources
+QModelIndexList indexes = /* selected indexes */;
+model->setResourceEnabled(indexes, EnableAction::TOGGLE);
+
+// Access resources
+for (int i = 0; i < model->size(); i++) {
+    Resource& res = model->at(i);
+    qDebug() << res.name() << "-" << res.sizeStr();
+}
+```
+
+---
+
+## ModFolderModel
+
+Specialized model for managing Minecraft mods with dependency tracking.
+
+**Class:** `ModFolderModel`  
+**Header:** `launcher/minecraft/mod/ModFolderModel.h`  
+**Inherits:** `ResourceFolderModel`
+
+### Constructor
+
+```cpp
+ModFolderModel(
+    const QDir& dir,
+    BaseInstance* instance,
+    bool is_indexed,
+    bool create_dir,
+    QObject* parent = nullptr
+);
+```
+
+### Extended Columns
+
+```cpp
+enum Columns {
+    ActiveColumn = 0,
+    ImageColumn,
+    NameColumn,
+    VersionColumn,
+    DateColumn,
+    ProviderColumn,
+    SizeColumn,
+    SideColumn,              // Client/Server side
+    LoadersColumn,           // Fabric, Forge, etc.
+    McVersionsColumn,        // Compatible MC versions
+    ReleaseTypeColumn,       // Release, Beta, Alpha
+    RequiresColumn,          // Dependencies
+    RequiredByColumn,        // Reverse dependencies
+    NUM_COLUMNS
+};
+```
+
+### Dependency Tracking
+
+<ResponseField name="requiresList(QString id)" type="QStringList">
+  Returns list of mod IDs that this mod requires.
+</ResponseField>
+
+<ResponseField name="requiredByList(QString id)" type="QStringList">
+  Returns list of mod IDs that require this mod.
+</ResponseField>
+
+<ResponseField name="getAffectedMods(const QModelIndexList& indexes, EnableAction action)" type="QModelIndexList">
+  Returns mods that would be affected by enabling/disabling the given mods (due to dependencies).
+</ResponseField>
+
+### Mod-Specific Operations
+
+<ResponseField name="setResourceEnabled(const QModelIndexList& indexes, EnableAction action)" type="bool">
+  Enables/disables mods while respecting dependencies. Returns true on success.
+</ResponseField>
+
+<ResponseField name="isValid()" type="bool">
+  Returns true if the mod folder is valid.
+</ResponseField>
+
+### Type Helpers
+
+The `RESOURCE_HELPERS` macro provides type-safe accessors:
+
+```cpp
+Mod& at(int index);
+const Mod& at(int index) const;
+QList<Mod*> selectedMods(const QModelIndexList& indexes);
+QList<Mod*> allMods();
+```
+
+### Example Usage
+
+```cpp
+#include "minecraft/mod/ModFolderModel.h"
+#include "minecraft/MinecraftInstance.h"
+
+MinecraftInstance* inst = /* ... */;
+ModFolderModel* mods = inst->loaderModList();
+
+// List all mods
+for (auto* mod : mods->allMods()) {
+    qDebug() << mod->name() << mod->version();
+    qDebug() << "  Side:" << mod->side();
+    qDebug() << "  Loaders:" << mod->loaders();
+    qDebug() << "  MC versions:" << mod->mcVersions();
+}
+
+// Check dependencies
+for (int i = 0; i < mods->size(); i++) {
+    Mod& mod = mods->at(i);
+    QStringList deps = mods->requiresList(mod.internal_id());
+    if (!deps.isEmpty()) {
+        qDebug() << mod.name() << "requires:" << deps;
+    }
+}
+
+// Disable a mod (and check affected mods)
+QModelIndexList toDisable = /* ... */;
+QModelIndexList affected = mods->getAffectedMods(toDisable, EnableAction::DISABLE);
+if (!affected.isEmpty()) {
+    qDebug() << "Warning: disabling will affect" << affected.size() << "other mods";
+}
+mods->setResourceEnabled(toDisable, EnableAction::DISABLE);
+```
+
+---
+
+## ResourcePackFolderModel
+
+Model for managing Minecraft resource packs.
+
+**Class:** `ResourcePackFolderModel`  
+**Header:** `launcher/minecraft/mod/ResourcePackFolderModel.h`  
+**Inherits:** `ResourceFolderModel`
+
+### Constructor
+
+```cpp
+explicit ResourcePackFolderModel(
+    const QDir& dir,
+    BaseInstance* instance,
+    bool is_indexed,
+    bool create_dir,
+    QObject* parent = nullptr
+);
+```
+
+### Columns
+
+```cpp
+enum Columns {
+    ActiveColumn = 0,
+    ImageColumn,
+    NameColumn,
+    PackFormatColumn,    // Resource pack format version
+    DateColumn,
+    ProviderColumn,
+    SizeColumn,
+    NUM_COLUMNS
+};
+```
+
+### Type Helpers
+
+```cpp
+ResourcePack& at(int index);
+const ResourcePack& at(int index) const;
+QList<ResourcePack*> selectedResourcePacks(const QModelIndexList& indexes);
+QList<ResourcePack*> allResourcePacks();
+```
+
+### Example Usage
+
+```cpp
+#include "minecraft/mod/ResourcePackFolderModel.h"
+#include "minecraft/MinecraftInstance.h"
+
+MinecraftInstance* inst = /* ... */;
+ResourcePackFolderModel* packs = inst->resourcePackList();
+
+// List resource packs
+for (auto* pack : packs->allResourcePacks()) {
+    qDebug() << pack->name();
+    qDebug() << "  Format:" << pack->packFormat();
+    qDebug() << "  Size:" << pack->sizeStr();
+}
+
+// Install a resource pack
+if (packs->installResource("/downloads/awesome-pack.zip")) {
+    qDebug() << "Resource pack installed";
+}
+
+// Enable all packs
+QModelIndexList all;
+for (int i = 0; i < packs->rowCount(); i++) {
+    all.append(packs->index(i, 0));
+}
+packs->setResourceEnabled(all, EnableAction::ENABLE);
+```
+
+---
+
+## Resource
+
+Base class representing a single managed resource.
+
+**Class:** `Resource`  
+**Header:** `launcher/minecraft/mod/Resource.h`  
+**Inherits:** `QObject`
+
+### Resource Types
+
+```cpp
+enum class ResourceType {
+    UNKNOWN,
+    ZIPFILE,      // Zip archive
+    SINGLEFILE,   // Single file
+    FOLDER,       // Directory
+    LITEMOD       // LiteMod format
+};
+```
+
+### Resource Status
+
+```cpp
+enum class ResourceStatus {
+    INSTALLED,      // Both JAR and metadata present
+    NOT_INSTALLED,  // Only metadata present
+    NO_METADATA,    // Only JAR present
+    UNKNOWN         // Default status
+};
+```
+
+### Properties
+
+<ResponseField name="fileinfo()" type="QFileInfo">
+  Returns file information for this resource.
+</ResponseField>
+
+<ResponseField name="name()" type="QString">
+  Returns the display name of the resource.
+</ResponseField>
+
+<ResponseField name="internal_id()" type="QString">
+  Returns the internal ID used for indexing.
+</ResponseField>
+
+<ResponseField name="type()" type="ResourceType">
+  Returns the resource type.
+</ResponseField>
+
+<ResponseField name="status()" type="ResourceStatus">
+  Returns the installation status.
+</ResponseField>
+
+<ResponseField name="enabled()" type="bool">
+  Returns true if the resource is enabled.
+</ResponseField>
+
+<ResponseField name="valid()" type="bool">
+  Returns true if the resource is valid.
+</ResponseField>
+
+### Size and Date
+
+<ResponseField name="sizeStr()" type="QString">
+  Returns human-readable size string (e.g., "2.5 MB").
+</ResponseField>
+
+<ResponseField name="sizeInfo()" type="qint64">
+  Returns size in bytes.
+</ResponseField>
+
+<ResponseField name="dateTimeChanged()" type="QDateTime">
+  Returns the last modification date.
+</ResponseField>
+
+### Metadata
+
+<ResponseField name="metadata()" type="std::shared_ptr<Metadata::ModStruct>">
+  Returns the resource metadata (download info, versions, etc.).
+</ResponseField>
+
+<ResponseField name="setMetadata(std::shared_ptr<Metadata::ModStruct>&& metadata)" type="void">
+  Sets the resource metadata.
+</ResponseField>
+
+<ResponseField name="provider()" type="QString">
+  Returns the provider name (e.g., "CurseForge", "Modrinth").
+</ResponseField>
+
+<ResponseField name="homepage()" type="QString">
+  Returns the resource's homepage URL.
+</ResponseField>
+
+### Operations
+
+<ResponseField name="enable(EnableAction action)" type="bool">
+  Enables, disables, or toggles the resource. Returns true if state changed.
+</ResponseField>
+
+<ResponseField name="destroy(const QDir& index_dir, bool preserve_metadata, bool attempt_trash)" type="bool">
+  Deletes all files for this resource. Returns true on success.
+</ResponseField>
+
+<ResponseField name="destroyMetadata(const QDir& index_dir)" type="void">
+  Deletes only the metadata for this resource.
+</ResponseField>
+
+### Compatibility
+
+<ResponseField name="issues()" type="QStringList">
+  Returns list of compatibility issues with the instance.
+</ResponseField>
+
+<ResponseField name="updateIssues(const BaseInstance* inst)" type="void">
+  Updates the issues list based on instance compatibility.
+</ResponseField>
+
+<ResponseField name="hasIssues()" type="bool">
+  Returns true if there are compatibility issues.
+</ResponseField>
+
+### Example Usage
+
+```cpp
+#include "minecraft/mod/Resource.h"
+
+Resource& resource = /* ... */;
+
+// Get basic info
+qDebug() << "Name:" << resource.name();
+qDebug() << "Type:" << (int)resource.type();
+qDebug() << "Size:" << resource.sizeStr();
+qDebug() << "Modified:" << resource.dateTimeChanged().toString();
+
+// Check metadata
+if (auto meta = resource.metadata()) {
+    qDebug() << "Provider:" << resource.provider();
+    qDebug() << "Homepage:" << resource.homepage();
+}
+
+// Check compatibility
+BaseInstance* inst = /* ... */;
+resource.updateIssues(inst);
+if (resource.hasIssues()) {
+    qDebug() << "Issues:" << resource.issues();
+}
+
+// Enable/disable
+resource.enable(EnableAction::TOGGLE);
+qDebug() << "Enabled:" << resource.enabled();
+```

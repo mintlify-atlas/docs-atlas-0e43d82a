@@ -1,0 +1,364 @@
+---
+title: AI Usage Policy
+description: Guidelines for using AI tools when contributing to Prism Launcher
+---
+
+Prism Launcher expects authentic engagement in our community. This policy outlines how AI tools should (and should not) be used when contributing to the project.
+
+<Note>
+  This policy is adapted from [matplotlib's contributing guide](https://matplotlib.org/devdocs/devel/contribute.html#generative-ai) and the [Linux Kernel policy guide](https://www.kernel.org/doc./html/next/process/coding-assistants.html).
+</Note>
+
+## Core Principles
+
+We value **authentic human engagement** over AI-generated content. When using AI tools:
+
+1. **Understand what you submit** - Fully comprehend all AI-generated code or documentation
+2. **Add personal value** - Ensure you contribute based on your own competency
+3. **Take responsibility** - You are accountable for everything you submit, including AI-generated parts
+
+## Restrictions
+
+### Do NOT Post AI Output Directly
+
+<Warning>
+  **Never post raw output from Large Language Models or similar generative AI** as comments on GitHub or our Discord server.
+</Warning>
+
+AI-generated comments tend to be:
+
+- Formulaic and generic
+- Low-quality
+- Lacking genuine insight
+- Potentially incorrect or misleading
+
+This applies to:
+
+- GitHub issue comments
+- Pull request discussions  
+- Code review comments
+- Discord messages
+- Matrix chats
+- Reddit posts
+
+### Understand Before Submitting
+
+If you use generative AI tools to develop code or documentation:
+
+<Steps>
+  <Step title="Review thoroughly">
+    Read and understand **every line** of AI-generated code.
+  </Step>
+
+  <Step title="Verify correctness">
+    Ensure the approach is correct for the specific problem.
+  </Step>
+
+  <Step title="Explain the solution">
+    Be able to explain why the code works and why this approach is appropriate.
+  </Step>
+
+  <Step title="Test completely">
+    Build and test the changes to verify they work as intended.
+  </Step>
+</Steps>
+
+<Note>
+  Just taking input, feeding it to an AI, and posting the result is **not valuable** to the project.
+</Note>
+
+## Developer Certificate of Origin
+
+### AI Agents MUST NOT Sign Off
+
+<Warning>
+  **AI agents MUST NOT add Signed-off-by tags.** Only humans can legally certify the Developer Certificate of Origin (DCO).
+</Warning>
+
+The human submitter is responsible for:
+
+- **Reviewing all AI-generated code** thoroughly
+- **Ensuring compliance** with licensing requirements  
+- **Adding their own Signed-off-by tag** to certify the DCO
+- **Taking full responsibility** for the contribution
+
+### Signing Your Work
+
+All contributions must be signed off:
+
+```bash
+git commit -s -m "Your commit message"
+```
+
+This appends a sign-off line:
+
+```text
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+By signing off, you certify:
+
+<CodeGroup>
+```text Full DCO
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+</CodeGroup>
+
+## Attribution Requirements
+
+When AI tools contribute to development, **proper attribution** helps track the evolving role of AI in the development process.
+
+### Assisted-by Tag Format
+
+Contributions should include an `Assisted-by` tag in the commit message:
+
+```text
+Assisted-by: AGENT_NAME:MODEL_VERSION [TOOL1] [TOOL2]
+```
+
+**Components:**
+
+- `AGENT_NAME` - Name of the AI tool or framework (e.g., Claude, ChatGPT, GitHub Copilot)
+- `MODEL_VERSION` - Specific model version used (e.g., claude-3-opus, gpt-4-turbo)
+- `[TOOL1] [TOOL2]` - Optional specialized analysis tools (e.g., coccinelle, sparse, smatch, clang-tidy)
+
+<Note>
+  Basic development tools (git, gcc, make, editors) should **not** be listed.
+</Note>
+
+### Example Commit Messages
+
+<Tabs>
+  <Tab title="With AI Assistance">
+    ```text
+    Fix memory leak in texture loader
+
+    The texture cache wasn't properly releasing memory when textures
+    were unloaded. This adds proper cleanup in the destructor.
+
+    Assisted-by: Claude:claude-3-opus clang-tidy
+    Signed-off-by: Jane Developer <jane@example.com>
+    ```
+  </Tab>
+
+  <Tab title="Without AI">
+    ```text
+    Fix memory leak in texture loader
+
+    The texture cache wasn't properly releasing memory when textures
+    were unloaded. This adds proper cleanup in the destructor.
+
+    Signed-off-by: Jane Developer <jane@example.com>
+    ```
+  </Tab>
+
+  <Tab title="Multiple Tools">
+    ```text
+    Refactor network error handling
+
+    Consolidates error handling across network classes and adds
+    better error messages for common failure scenarios.
+
+    Assisted-by: GitHub-Copilot:gpt-4 clang-tidy cppcheck
+    Signed-off-by: John Developer <john@example.com>
+    ```
+  </Tab>
+</Tabs>
+
+## What AI Can Help With
+
+AI tools can be valuable assistants for:
+
+### Code Development
+
+- **Boilerplate generation** - Repetitive code patterns
+- **API exploration** - Understanding unfamiliar libraries
+- **Bug investigation** - Analyzing error messages and stack traces
+- **Code review** - Suggesting improvements (but humans must verify)
+- **Refactoring ideas** - Proposing code restructuring approaches
+
+### Documentation
+
+- **Initial drafts** - Creating documentation structure
+- **Grammar and clarity** - Improving existing text
+- **Code examples** - Generating example usage (must be tested)
+- **Translation assistance** - Helping with non-native language contributions
+
+### Testing
+
+- **Test case generation** - Suggesting test scenarios
+- **Edge cases** - Identifying potential issues
+- **Test data** - Creating sample data for tests
+
+<Warning>
+  All AI-generated tests must be reviewed and verified to actually test the intended behavior.
+</Warning>
+
+## What AI Should NOT Do
+
+### Unacceptable Uses
+
+❌ **Posting comments/discussions** - No AI-generated GitHub/Discord/Matrix messages
+
+❌ **Signing commits** - AI cannot add Signed-off-by tags
+
+❌ **Making final decisions** - Humans must make architectural and design choices
+
+❌ **Copy-pasting without understanding** - Must comprehend all submitted code
+
+❌ **Bulk code generation** - Large AI-generated changes without thorough review
+
+## Enforcement
+
+### Review Process
+
+Maintainers reserve the right to:
+
+- **Request clarification** on contributions that appear AI-generated
+- **Reject low-value contributions** that seem to be unmodified AI output
+- **Ask for rewrites** of overly formulaic or generic code
+- **Close pull requests** that violate this policy
+
+### Red Flags
+
+Contributions may be flagged for AI policy violations if they:
+
+- Contain generic, formulaic comments
+- Show patterns typical of LLM output
+- Include unexplained complex changes
+- Have commit messages that don't match the actual changes
+- Lack proper Assisted-by attribution when AI use is evident
+
+<Note>
+  These reviews are to **preserve precious core developer capacity**. We need maintainers to focus on valuable contributions, not reviewing machine-generated content.
+</Note>
+
+## Best Practices
+
+### Using AI Effectively
+
+<Steps>
+  <Step title="Start with understanding">
+    Before asking AI, understand the problem yourself.
+  </Step>
+
+  <Step title="Use AI as a tool">
+    Treat AI like a junior developer - verify everything.
+  </Step>
+
+  <Step title="Add your expertise">
+    Enhance AI suggestions with your knowledge of the codebase.
+  </Step>
+
+  <Step title="Test thoroughly">
+    Build, run, and test all AI-generated code.
+  </Step>
+
+  <Step title="Document accurately">
+    Add appropriate Assisted-by tags to commit messages.
+  </Step>
+
+  <Step title="Sign off properly">
+    Add your Signed-off-by tag to certify the DCO.
+  </Step>
+</Steps>
+
+### Questions to Ask Yourself
+
+Before submitting AI-assisted code:
+
+1. **Can I explain this code?** - If not, study it until you can
+2. **Is this the right approach?** - Or just an approach that compiles?
+3. **Have I tested edge cases?** - AI might miss important scenarios
+4. **Does this fit the codebase style?** - AI might not know project conventions
+5. **Am I adding value?** - Or just submitting raw AI output?
+
+## Examples
+
+### Good AI Use
+
+```cpp
+// Human identifies a memory leak issue
+// Asks AI for suggestions on RAII patterns
+// Reviews and understands the AI suggestion
+// Adapts it to fit the project's code style
+// Tests thoroughly
+// Commits with proper attribution
+
+class TextureCache {
+   public:
+    ~TextureCache() {
+        // AI suggested using RAII, human verified and adapted
+        for (auto& [id, texture] : m_textures) {
+            texture.release();
+        }
+    }
+    // ...
+};
+```
+
+Commit message:
+```text
+fix: properly cleanup texture cache on destruction
+
+Previously, textures weren't released when the cache was destroyed,
+causing memory leaks. Now using proper RAII to ensure cleanup.
+
+Assisted-by: Claude:claude-3-opus
+Signed-off-by: Developer Name <dev@example.com>
+```
+
+### Bad AI Use
+
+```cpp
+// Human copy-pastes problem to AI
+// Gets back a complete solution
+// Submits without understanding
+// Doesn't test edge cases
+// No attribution
+
+// This code might work, but the contributor can't explain:
+// - Why this approach was chosen
+// - What the trade-offs are
+// - How it handles edge cases
+// - Whether it fits the project architecture
+```
+
+## Additional Resources
+
+- [Developer Certificate of Origin](https://developercertificate.org/)
+- [Linux Kernel Coding Assistants Policy](https://www.kernel.org/doc./html/next/process/coding-assistants.html)
+- [Matplotlib AI Policy](https://matplotlib.org/devdocs/devel/contribute.html#generative-ai)
+- [GitHub Commit Signing](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
+
+## Summary
+
+<Note>
+  **TL;DR**: AI can assist your development, but you must understand, verify, and take responsibility for everything you submit. Add proper attribution with Assisted-by tags, and always sign off yourself.
+</Note>
+
+When in doubt, ask maintainers in our [Discord](https://prismlauncher.org/discord) or [Matrix space](https://prismlauncher.org/matrix).

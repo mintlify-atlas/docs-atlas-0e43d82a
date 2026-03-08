@@ -1,0 +1,192 @@
+---
+title: Getting Started with Contributing
+description: How to get started contributing to Prism Launcher
+---
+
+Welcome to the Prism Launcher development community! This guide will help you get started with contributing to the project.
+
+## Prerequisites
+
+Before you begin contributing, make sure you have:
+
+- A GitHub account
+- Git installed on your system
+- CMake 3.22 or higher
+- Qt 6.4 or higher
+- A C++ compiler with C++20 support
+- Basic knowledge of C++ and Qt
+
+## Repository Setup
+
+<Steps>
+  <Step title="Fork and Clone">
+    Fork the [PrismLauncher repository](https://github.com/PrismLauncher/PrismLauncher) on GitHub, then clone your fork:
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/PrismLauncher.git
+    cd PrismLauncher
+    ```
+  </Step>
+
+  <Step title="Update Submodules">
+    Initialize and update the git submodules:
+
+    ```bash
+    git submodule update --init --force
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install the required dependencies for your platform. See the [building guide](/development/building) for platform-specific instructions.
+  </Step>
+
+  <Step title="Configure and Build">
+    Create a build directory and configure the project:
+
+    ```bash
+    mkdir build
+    cd build
+    cmake ..
+    cmake --build .
+    ```
+  </Step>
+</Steps>
+
+## Development Environment Setup
+
+<Tabs>
+  <Tab title="Nix">
+    If you're using Nix, the project provides a development shell:
+
+    ```bash
+    nix develop
+    ```
+
+    This will automatically set up all dependencies and configure the build environment. The shell hook will:
+
+    - Update git submodules
+    - Run CMake configuration with Ninja
+    - Create a `compile_commands.json` symlink for LSP support
+
+    To build after entering the shell:
+
+    ```bash
+    cd "$cmakeBuildDir"
+    ninjaBuildPhase
+    ninjaInstallPhase
+    ```
+  </Tab>
+
+  <Tab title="IDE Setup">
+    ### Qt Creator
+
+    Qt Creator provides excellent support for Qt-based projects:
+
+    1. Open `CMakeLists.txt` as a project
+    2. Configure the build directory
+    3. Qt Creator will automatically handle CMake configuration
+
+    ### CLion / Other JetBrains IDEs
+
+    Thanks to JetBrains for providing licenses as part of their [Open Source program](https://www.jetbrains.com/opensource/)!
+
+    1. Open the project directory
+    2. CLion will automatically detect CMake configuration
+    3. Use the generated `compile_commands.json` for better code analysis
+
+    ### VS Code
+
+    Install the following extensions:
+
+    - C/C++ Extension Pack
+    - CMake Tools
+    - clangd (for better C++ language support)
+
+    The project exports `compile_commands.json` for LSP support when using Unix Makefiles or Ninja generators.
+  </Tab>
+</Tabs>
+
+## Making Your First Contribution
+
+<Steps>
+  <Step title="Find an Issue">
+    Browse the [issue tracker](https://github.com/PrismLauncher/PrismLauncher/issues) to find something to work on. Issues labeled `good first issue` are great for beginners.
+  </Step>
+
+  <Step title="Create a Branch">
+    Create a new branch for your work:
+
+    ```bash
+    git checkout -b feature/my-awesome-feature
+    ```
+  </Step>
+
+  <Step title="Make Changes">
+    Make your changes following the [code style guidelines](/development/code-style) and ensure you run `clang-format` on modified files.
+  </Step>
+
+  <Step title="Test Your Changes">
+    Build and test your changes locally:
+
+    ```bash
+    cd build
+    cmake --build .
+    ctest  # Run tests if applicable
+    ```
+  </Step>
+
+  <Step title="Sign Your Commits">
+    All commits must be signed off to certify the Developer Certificate of Origin:
+
+    ```bash
+    git commit -s -m "Your commit message"
+    ```
+
+    The `-s` flag adds a `Signed-off-by` line to your commit message.
+  </Step>
+
+  <Step title="Push and Create PR">
+    Push your changes and create a pull request:
+
+    ```bash
+    git push origin feature/my-awesome-feature
+    ```
+
+    Then visit GitHub to create a pull request from your branch.
+  </Step>
+</Steps>
+
+<Note>
+  Remember to read our [AI usage policy](/development/ai-policy) if you're using AI tools to assist with your contribution.
+</Note>
+
+## Community Support
+
+Need help? Join our community spaces:
+
+- **Discord**: [prismlauncher.org/discord](https://prismlauncher.org/discord)
+- **Matrix**: [prismlauncher.org/matrix](https://prismlauncher.org/matrix)
+- **Reddit**: [r/PrismLauncher](https://prismlauncher.org/reddit)
+
+## Development Builds
+
+Development builds are available through:
+
+- [GitHub Actions](https://github.com/PrismLauncher/PrismLauncher/actions) - includes PR builds
+- [nightly.link](https://prismlauncher.org/nightly) - latest develop branch
+- [Flatpak nightly repository](https://github.com/PrismLauncher/flatpak) - Linux only
+
+<Warning>
+  Development builds may contain bugs and instabilities. They include debug information, making file sizes larger.
+</Warning>
+
+## Translations
+
+Interested in translating? Visit our [Weblate project](https://hosted.weblate.org/projects/prismlauncher/launcher/) and check out the [Translations repository](https://github.com/PrismLauncher/Translations) for more information.
+
+## Next Steps
+
+- Read the [building instructions](/development/building) for detailed platform-specific build steps
+- Review the [code style guide](/development/code-style) before making changes
+- Understand our [AI usage policy](/development/ai-policy) if you use AI tools
+- Check the [backporting process](https://github.com/PrismLauncher/PrismLauncher/blob/develop/.github/workflows/backport.yml) for release branches

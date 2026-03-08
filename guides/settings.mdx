@@ -1,0 +1,460 @@
+---
+title: Configuring Prism Launcher Settings
+description: Complete guide to configuring global and instance-specific settings in Prism Launcher
+---
+
+Prism Launcher uses a flexible settings system that supports both global defaults and instance-specific overrides through the `SettingsObject` architecture.
+
+## Settings Architecture
+
+Prism Launcher's settings system is built on several key components:
+
+```cpp
+class SettingsObject {
+    registerSetting(id, defaultValue)       // Register new setting
+    registerOverride(original, gate)        // Instance-specific override
+    registerPassthrough(original, gate)     // Conditional passthrough
+    get(id) / set(id, value)               // Access settings
+}
+```
+
+### Setting Types
+
+<CardGroup cols={3}>
+  <Card title="Global Settings" icon="globe">
+    Default values applied to all instances unless overridden.
+  </Card>
+  
+  <Card title="Override Settings" icon="layer-group">
+    Instance-specific values that take precedence over global settings.
+  </Card>
+  
+  <Card title="Passthrough Settings" icon="arrow-right">
+    Conditional settings controlled by a gate setting.
+  </Card>
+</CardGroup>
+
+## Global Settings
+
+Access global settings through the main Settings menu:
+
+### General Settings
+
+<Accordion title="Launcher Configuration">
+  - **Language**: Interface language selection
+  - **Theme**: Light, Dark, or System theme
+  - **Instance Directory**: Where instances are stored
+  - **Icon Theme**: Icon set for the launcher
+  - **Show Console**: Whether to show console on launch
+  - **Console Max Lines**: Maximum log lines to keep
+  
+  ```cpp
+  getConsoleMaxLines(settings)           // Get console line limit
+  shouldStopOnConsoleOverflow(settings)  // Check overflow behavior
+  ```
+</Accordion>
+
+<Accordion title="Update Settings">
+  - **Check for Updates**: Automatic update checking
+  - **Update Channel**: Release, Beta, or Development
+  - **Auto-update**: Automatically download updates
+</Accordion>
+
+### Java Settings
+
+Global Java configuration (see [Java Setup Guide](/guides/java-setup) for details):
+
+- **Java Installation**: Default Java path
+- **Memory Allocation**: Default min/max memory
+- **JVM Arguments**: Default Java arguments
+- **Auto Java Download**: Enable automatic Java installation
+
+```cpp
+globalSettings()->get("JavaPath")         // Get Java path
+globalSettings()->set("MaxMemAlloc", 4096) // Set 4GB max
+```
+
+### Account Settings
+
+Manage Minecraft accounts:
+
+- **Add Account**: Sign in with Microsoft account
+- **Default Account**: Account used when launching
+- **Account List**: Manage multiple accounts
+- **Auto-login**: Automatically use default account
+
+### Network Settings
+
+<Accordion title="Connectivity Options">
+  - **Proxy Settings**: HTTP/SOCKS proxy configuration
+  - **Download Threads**: Concurrent download connections
+  - **Connection Timeout**: Network timeout duration
+  - **User Agent**: Custom user agent string
+  
+  ```cpp
+  net::Mode  // Network operation modes
+  ```
+</Accordion>
+
+### API Keys
+
+Configure platform API keys:
+
+- **CurseForge API Key**: For mod downloads
+- **Modrinth API Key**: Optional, improves rate limits
+- **Custom API Keys**: For other services
+
+## Instance Settings
+
+Each instance can override global settings:
+
+### Accessing Instance Settings
+
+<Steps>
+  <Step title="Open Instance Settings">
+    Right-click instance → "Edit Instance" → "Settings"
+  </Step>
+  
+  <Step title="Enable Overrides">
+    Check "Override global settings" for each category you want to customize.
+    
+    ```cpp
+    instance->settings()  // Get instance SettingsObject
+    ```
+  </Step>
+  
+  <Step title="Configure Settings">
+    Modify settings specific to this instance. Changes only affect this instance.
+  </Step>
+</Steps>
+
+### Instance-Specific Settings
+
+<Tabs>
+  <Tab title="Java Settings">
+    Override Java configuration:
+    
+    ```cpp
+    registerOverride(globalJavaPath, useInstanceJava)
+    ```
+    
+    Instance overrides:
+    - Java installation path
+    - Memory allocation (min/max)
+    - JVM arguments
+    - Wrapper command
+    
+    <Note>
+    Useful for instances with different memory requirements or Java version needs.
+    </Note>
+  </Tab>
+  
+  <Tab title="Game Settings">
+    Customize game launch:
+    
+    - **Window Size**: Custom resolution
+    - **Pre-launch Command**: Script before launch
+    - **Post-exit Command**: Script after exit
+    - **Wrapper Command**: Wrap Java execution
+    - **Game Arguments**: Extra Minecraft arguments
+    
+    ```cpp
+    getPreLaunchCommand()   // Script run before launch
+    getPostExitCommand()    // Script run after exit
+    getWrapperCommand()     // Wrapper for Java
+    extraArguments()        // Additional game args
+    ```
+  </Tab>
+  
+  <Tab title="Console Settings">
+    Configure launch console:
+    
+    - **Show Console**: Display on launch
+    - **Auto-close**: Close on game exit
+    - **Stop on Overflow**: Halt on log overflow
+    
+    ```cpp
+    getConsoleMaxLines(settings)           // Line limit
+    shouldStopOnConsoleOverflow(settings)  // Overflow behavior
+    ```
+  </Tab>
+  
+  <Tab title="Performance Settings">
+    Optimize game performance:
+    
+    - **Use discrete GPU**: Force dedicated graphics
+    - **Custom environment variables**: Set environment vars
+    - **Process priority**: CPU priority level
+  </Tab>
+</Tabs>
+
+## Settings Persistence
+
+Settings are automatically saved to configuration files:
+
+### Global Settings Storage
+
+```
+prism-launcher/
+├── prismlauncher.cfg       # Main settings file
+├── accounts.json           # Account information
+└── metacache/              # Cached metadata
+```
+
+### Instance Settings Storage
+
+```
+instances/instance_name/
+└── instance.cfg            # Instance-specific settings
+```
+
+Settings format (INI-style):
+```ini
+InstanceType=OneSix
+name=My Instance
+JavaPath=/usr/bin/java
+OverrideJava=true
+```
+
+### Settings Save Operations
+
+```cpp
+saveNow()                   // Immediate save to disk
+suspendSave()               // Temporarily disable auto-save
+resumeSave()                // Re-enable auto-save
+reload()                    // Reload from disk
+```
+
+The `Lock` RAII class manages save suspension:
+```cpp
+SettingsObject::Lock lock(settings);  // Suspends saves
+// Make multiple changes
+// Destructor automatically resumes and saves
+```
+
+## Advanced Settings Management
+
+### Programmatic Settings Access
+
+```cpp
+// Register new setting
+auto setting = settings->registerSetting("MySetting", defaultValue);
+
+// Get setting value
+QVariant value = settings->get("MySetting");
+
+// Set setting value
+settings->set("MySetting", newValue);
+
+// Reset to default
+settings->reset("MySetting");
+
+// Check if setting exists
+if (settings->contains("MySetting")) {
+    // Setting exists
+}
+```
+
+### Setting Signals
+
+Settings emit signals on change:
+
+```cpp
+connect(settings, &SettingsObject::SettingChanged,
+        [](const Setting& setting, QVariant value) {
+    qDebug() << "Setting changed:" << setting.id() << "=" << value;
+});
+
+connect(settings, &SettingsObject::settingReset,
+        [](const Setting& setting) {
+    qDebug() << "Setting reset:" << setting.id();
+});
+```
+
+### Override System
+
+Create instance overrides:
+
+```cpp
+// Global setting
+auto globalJavaPath = globalSettings->registerSetting("JavaPath", "/usr/bin/java");
+
+// Gate setting (controls override)
+auto useOverride = instanceSettings->registerSetting("OverrideJava", false);
+
+// Override setting
+auto instanceJavaPath = instanceSettings->registerOverride(
+    globalJavaPath,  // Original setting
+    useOverride      // Gate setting
+);
+
+// When useOverride=false: uses globalJavaPath
+// When useOverride=true: uses instanceJavaPath
+```
+
+### Passthrough Settings
+
+Conditional value passthrough:
+
+```cpp
+auto passthroughSetting = settings->registerPassthrough(
+    originalSetting,
+    gateSetting
+);
+
+// When gate=true: uses passthrough value
+// When gate=false: uses original value
+```
+
+## INI File Settings
+
+For advanced use, settings use INI file backend:
+
+```cpp
+class INISettingsObject : public SettingsObject {
+    // Backed by INI file
+    // Supports sections
+    // Handles type conversion
+}
+```
+
+### INI File Structure
+
+```ini
+[General]
+name=Instance Name
+instanceType=OneSix
+
+[Java]
+OverrideJava=true
+JavaPath=/custom/java/path
+MaxMemAlloc=4096
+
+[CustomCommands]
+OverrideCommands=true
+PreLaunchCommand=echo Starting
+PostExitCommand=echo Finished
+```
+
+## Platform-Specific Settings
+
+### macOS Sandboxing
+
+On macOS, Prism handles sandboxed file access:
+
+```cpp
+#ifdef Q_OS_MACOS
+getPathFromBookmark(id)           // Resolve sandboxed path
+setPathWithBookmark(id, path)     // Create security bookmark
+#endif
+```
+
+Bookmark settings:
+- Store security-scoped bookmarks
+- Enable access to user-selected folders
+- Persist across launches
+
+### Windows-Specific
+
+- Registry integration for Java detection
+- Windows-specific JVM arguments
+- Desktop shortcut creation settings
+
+### Linux-Specific
+
+- XDG base directory compliance
+- Desktop entry creation
+- System theme integration
+
+## Common Settings Configurations
+
+<Accordion title="Optimal Performance Setup">
+  Global settings:
+  - Java: Latest version for your Minecraft
+  - Memory: 4-8GB for modded, 2-4GB vanilla
+  - JVM Args: `-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions`
+  
+  Instance overrides:
+  - High-end modpacks: 8GB+ RAM
+  - Lightweight instances: 2GB RAM
+</Accordion>
+
+<Accordion title="Multi-Account Setup">
+  - Add all accounts in Settings → Accounts
+  - Set default account for quick launch
+  - Use instance-specific accounts via pre-launch scripts
+  - Enable auto-login for convenience
+</Accordion>
+
+<Accordion title="Development Instance">
+  Instance overrides:
+  - Enable console auto-show
+  - Reduce memory allocation for faster restarts
+  - Add debug JVM arguments
+  - Set custom wrapper for profiling
+</Accordion>
+
+<Accordion title="Server-Side Instance">
+  - Disable client-side mods
+  - Increase memory allocation
+  - Set nogui game argument
+  - Configure auto-restart via wrapper
+</Accordion>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Overrides Sparingly" icon="layer-group">
+    Only override instance settings when truly needed. Global defaults are easier to manage.
+  </Card>
+  
+  <Card title="Document Custom Settings" icon="note-sticky">
+    Use instance notes to document why specific overrides were needed.
+  </Card>
+  
+  <Card title="Backup Settings" icon="floppy-disk">
+    Regularly backup your Prism Launcher directory, including all settings files.
+  </Card>
+  
+  <Card title="Test After Changes" icon="vial">
+    Always test instances after changing settings, especially Java or memory configuration.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Settings Not Saving
+
+If settings don't persist:
+
+1. **Check Permissions**: Ensure write access to config directory
+2. **Check Disk Space**: Verify sufficient disk space
+3. **Lock Issues**: Ensure no other Prism instance is running
+4. **Corrupted Config**: Delete and recreate settings file
+
+### Override Not Working
+
+If instance override isn't applying:
+
+1. **Verify Override Enabled**: Check "Override global settings" is checked
+2. **Check Gate Setting**: Ensure override gate setting is true
+3. **Restart Instance**: Close and reopen instance editor
+4. **Check instance.cfg**: Verify override settings are written
+
+### Settings Reset on Launch
+
+If settings revert after restart:
+
+1. **File Permissions**: Check config files aren't read-only
+2. **Concurrent Instances**: Don't run multiple Prism instances
+3. **Sync Conflicts**: Disable cloud sync for config folder
+4. **Save Timing**: Ensure proper shutdown (not force-killed)
+
+### Cannot Find Setting
+
+If a setting isn't visible:
+
+1. **Check Launcher Version**: Some settings are version-specific
+2. **Advanced Settings**: May be in advanced/experimental section
+3. **Instance Type**: Some settings only apply to certain instance types
+4. **Platform-Specific**: Setting may not be available on your OS

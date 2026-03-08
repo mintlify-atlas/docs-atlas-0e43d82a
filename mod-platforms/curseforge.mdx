@@ -1,0 +1,268 @@
+---
+title: CurseForge Integration
+description: Browse, install, and manage CurseForge modpacks in Prism Launcher
+---
+
+CurseForge is one of the largest mod and modpack hosting platforms for Minecraft. Prism Launcher provides full integration for browsing, installing, and managing CurseForge modpacks.
+
+## Overview
+
+The CurseForge integration (internally called "Flame" after the API name) offers:
+
+- **Extensive modpack library** - Access to thousands of CurseForge modpacks
+- **Advanced search and filtering** - Find modpacks by category, mod loader, and version
+- **Automatic dependency resolution** - Downloads required mods automatically
+- **Fingerprint matching** - Accurate mod identification using file fingerprints
+- **Update checking** - Detect available updates for installed mods
+- **Export functionality** - Export instances as CurseForge modpacks
+
+## Creating a CurseForge Instance
+
+<Steps>
+  <Step title="Open the New Instance dialog">
+    Click **Add Instance** from the main window.
+  </Step>
+  
+  <Step title="Navigate to CurseForge">
+    Select the **CurseForge** tab in the new instance dialog.
+  </Step>
+  
+  <Step title="Browse or search">
+    Use the search bar to find specific modpacks, or browse by category and sorting options.
+  </Step>
+  
+  <Step title="Select a modpack">
+    Click on a modpack to view its description, author, and available versions.
+  </Step>
+  
+  <Step title="Choose a version">
+    Select your preferred version from the dropdown menu. The latest version is selected by default.
+  </Step>
+  
+  <Step title="Create the instance">
+    Click **OK** to begin downloading and installing the modpack.
+  </Step>
+</Steps>
+
+## Sorting and Filtering
+
+### Sort Options
+
+CurseForge provides multiple sorting methods:
+
+- **Featured** - Highlighted and promoted modpacks
+- **Popularity** - Most popular modpacks
+- **Last Updated** - Recently updated modpacks
+- **Name** - Alphabetical order
+- **Author** - Sort by creator
+- **Total Downloads** - Most downloaded modpacks
+- **Category** - Group by category
+- **Game Version** - Sort by Minecraft version
+
+### Filter Criteria
+
+Filter modpacks by:
+
+- **Mod Loader** - Forge, NeoForge, Fabric, or Quilt
+- **Minecraft Version** - Specific game versions
+- **Categories** - Technology, magic, adventure, quests, etc.
+
+<Note>
+CurseForge filtering uses category IDs internally. The launcher automatically translates user-friendly names to the correct category identifiers.
+</Note>
+
+## Technical Implementation
+
+### Flame API
+
+The integration uses CurseForge's Flame API, which provides:
+
+**Project Search** - `/mods/search?gameId=432`
+- Query modpacks with pagination
+- Filter by mod loader, version, and categories
+- Return project metadata and files
+
+**File Metadata** - `/mods/{modId}/files/{fileId}`
+- Get specific file information
+- Download URLs and checksums
+- Changelog data
+
+**Fingerprint Matching** - `/fingerprints`
+- Match installed files to CurseForge projects
+- Bulk fingerprint lookup for updates
+- Accurate mod identification
+
+### Resource Type Class IDs
+
+CurseForge uses class IDs to categorize content:
+
+- **Mods**: `6`
+- **Modpacks**: `4471`
+- **Resource Packs**: `12`
+- **Shader Packs**: `6552`
+- **Data Packs**: `6945`
+
+<Info>
+These class IDs are used in API requests to filter results to the correct content type.
+</Info>
+
+### Mod Loader Types
+
+The API uses numeric IDs for mod loaders:
+
+- **Forge**: `1`
+- **Cauldron**: `2`
+- **LiteLoader**: `3`
+- **Fabric**: `4`
+- **Quilt**: `5`
+- **NeoForge**: `6`
+
+## Fingerprint Matching
+
+CurseForge uses fingerprint-based file identification for accurate mod tracking.
+
+<Steps>
+  <Step title="Calculate file fingerprint">
+    Prism Launcher computes a fingerprint hash for each installed mod file.
+  </Step>
+  
+  <Step title="Submit to API">
+    Fingerprints are sent to the `/fingerprints` endpoint in batches.
+  </Step>
+  
+  <Step title="Match results">
+    The API returns matching project and file IDs from CurseForge's database.
+  </Step>
+  
+  <Step title="Identify updates">
+    Matched files are compared against the latest available versions.
+  </Step>
+</Steps>
+
+<Warning>
+Fingerprint matching only works for files originally downloaded from CurseForge. Manually added or modified files may not be recognized.
+</Warning>
+
+## Updating CurseForge Mods
+
+Prism Launcher can check for and install updates to CurseForge mods.
+
+### Update Detection
+
+The launcher uses two methods:
+
+1. **Fingerprint matching** - Identifies current versions by file fingerprint
+2. **Version comparison** - Checks for newer file releases on CurseForge
+
+### Smart Loader Selection
+
+When multiple mod loaders are available, the launcher prioritizes:
+
+1. Mods matching your instance's current loader (e.g., Forge)
+2. Mods compatible with your Minecraft version
+3. The most recently updated version if multiple matches exist
+
+<Info>
+If a mod has versions for both Forge and Fabric, the launcher will select the version matching your instance's mod loader, even if the other loader's version is newer.
+</Info>
+
+## Exporting to CurseForge
+
+You can export your custom instances as CurseForge-compatible modpacks.
+
+<Steps>
+  <Step title="Select your instance">
+    Right-click the instance you want to export.
+  </Step>
+  
+  <Step title="Choose export format">
+    Select **Export Instance** → **CurseForge** format.
+  </Step>
+  
+  <Step title="Configure the export">
+    - Set pack name, version, and author
+    - Choose which files to include (mods, configs, etc.)
+    - Exclude client-only or server-only files if needed
+  </Step>
+  
+  <Step title="Generate the pack">
+    Save the `.zip` file containing the manifest and files.
+  </Step>
+</Steps>
+
+The exported pack uses CurseForge's manifest format:
+
+```json
+{
+  "manifestType": "minecraftModpack",
+  "manifestVersion": 1,
+  "name": "My Modpack",
+  "version": "1.0.0",
+  "author": "YourName",
+  "minecraft": {
+    "version": "1.20.1",
+    "modLoaders": [
+      {
+        "id": "forge-47.2.0",
+        "primary": true
+      }
+    ]
+  },
+  "files": [
+    {
+      "projectID": 123456,
+      "fileID": 789012,
+      "required": true
+    }
+  ]
+}
+```
+
+## Changelogs and Descriptions
+
+The launcher can fetch additional information from CurseForge:
+
+- **Mod descriptions** - Full HTML descriptions from project pages
+- **File changelogs** - Release notes for specific versions
+
+<Note>
+These are fetched on-demand when you view a mod's details, reducing initial load time.
+</Note>
+
+## Troubleshooting
+
+### Common Issues
+
+**"Failed to download modpack"**
+- Check your internet connection
+- Verify the modpack file is still available on CurseForge
+- Some files may require manual download due to redistribution restrictions
+
+**"Failed to resolve dependencies"**
+- Some mods may have dependencies not hosted on CurseForge
+- Check the modpack description for manual installation steps
+- Update Prism Launcher to the latest version
+
+**"Update check failed"**
+- Verify your CurseForge API key is valid (if required)
+- Check that mods were originally installed from CurseForge
+- Some mods may have been removed or hidden by authors
+
+<Warning>
+Due to CurseForge's distribution terms, some mod authors restrict third-party downloads. In these cases, you may need to download files manually from the CurseForge website.
+</Warning>
+
+## API Requirements
+
+<Info>
+Prism Launcher uses CurseForge's public API. Starting in 2022, CurseForge requires API keys for some operations. Prism Launcher includes built-in API access, but high-volume users may need to provide their own API key.
+</Info>
+
+## Source Code Reference
+
+The CurseForge (Flame) integration is implemented in:
+- `/launcher/modplatform/flame/FlameAPI.h` - API client interface
+- `/launcher/modplatform/flame/FlameAPI.cpp` - API implementation
+- `/launcher/modplatform/flame/PackManifest.h` - Manifest parsing
+- `/launcher/modplatform/flame/FileResolvingTask.cpp` - Dependency resolution
+- `/launcher/ui/pages/modplatform/flame/FlamePage.cpp` - User interface

@@ -1,0 +1,292 @@
+---
+title: Managing Minecraft Instances
+description: Learn how to create, configure, duplicate, and manage Minecraft instances in Prism Launcher
+---
+
+Prism Launcher organizes your Minecraft installations as **instances**. Each instance is a self-contained Minecraft installation with its own mods, resource packs, settings, and world saves.
+
+## Understanding Instances
+
+An instance in Prism Launcher represents a complete Minecraft setup stored in its own directory (`instanceRoot`). Each instance has:
+
+- Unique ID managed internally by the launcher
+- Custom name and icon
+- Independent mod and resource pack configuration
+- Separate world saves and settings
+- Its own game root directory structure
+
+<Note>
+Instances are managed by the `InstanceList` class which maintains an index of all instances and handles operations like creation, deletion, and grouping.
+</Note>
+
+## Creating a New Instance
+
+<Steps>
+  <Step title="Open Instance Creation">
+    Click the **New Instance** button in the toolbar or use the File menu.
+  </Step>
+  
+  <Step title="Select Minecraft Version">
+    Choose the Minecraft version you want to use. Prism Launcher supports:
+    - Official releases
+    - Snapshots
+    - Old alpha/beta versions
+    
+    The launcher validates version availability before creation.
+  </Step>
+  
+  <Step title="Configure Instance Settings">
+    Set your instance details:
+    - **Name**: A descriptive name for easy identification
+    - **Group**: Optional organization into groups (e.g., "Modded", "Vanilla")
+    - **Icon**: Choose or upload a custom icon
+  </Step>
+  
+  <Step title="Complete Creation">
+    Click Create to initialize the instance. The launcher will:
+    - Create the instance directory structure
+    - Download necessary game files
+    - Set up configuration files
+  </Step>
+</Steps>
+
+<Warning>
+Instance creation requires an active internet connection to download Minecraft files. Ensure you're authenticated with a valid Minecraft account.
+</Warning>
+
+## Instance Directory Structure
+
+Each instance follows this directory layout:
+
+```
+instance_root/
+├── .minecraft/          # Game root directory
+│   ├── mods/           # Mod files
+│   ├── resourcepacks/  # Resource packs
+│   ├── shaderpacks/    # Shader packs
+│   ├── saves/          # World saves
+│   └── config/         # Mod configurations
+├── minecraft/          # Instance-specific files
+│   ├── libraries/      # Local libraries
+│   └── versions/       # Version data
+└── instance.cfg        # Instance settings
+```
+
+## Instance Settings and Configuration
+
+### Basic Settings
+
+Each instance stores settings in a `SettingsObject` which includes:
+
+- **Name and Icon**: Display customization
+- **Notes**: Free-form text for instance documentation
+- **Group Assignment**: Organizational grouping
+- **Linked Instances**: References to related instances
+
+### Advanced Configuration
+
+<Accordion title="Pre-Launch and Post-Exit Commands">
+  Configure custom commands to run before launching or after exiting:
+  
+  - `getPreLaunchCommand()`: Executes before Minecraft starts
+  - `getPostExitCommand()`: Executes after Minecraft closes
+  - `getWrapperCommand()`: Wraps the entire launch process
+  
+  Use cases include backup scripts, mod updates, or system notifications.
+</Accordion>
+
+<Accordion title="Managed Pack Information">
+  For modpack instances, Prism stores metadata:
+  
+  - Pack type (CurseForge, Modrinth, etc.)
+  - Pack ID and name
+  - Version ID and version name
+  
+  Access via `isManagedPack()` and related getters.
+</Accordion>
+
+## Working with Instance Groups
+
+Groups help organize multiple instances:
+
+### Creating Groups
+
+Groups are created automatically when you assign an instance to a new group name. The `InstanceList` maintains group references and collapse states.
+
+### Managing Groups
+
+- **Rename Group**: Use `renameGroup(src, dst)` to rename across all instances
+- **Delete Group**: `deleteGroup(name)` removes the group assignment
+- **Collapse State**: Groups can be collapsed in the UI, state persists across sessions
+
+## Duplicating Instances
+
+To duplicate an instance:
+
+<Steps>
+  <Step title="Select Source Instance">
+    Right-click the instance you want to duplicate.
+  </Step>
+  
+  <Step title="Choose Copy Instance">
+    Select "Copy Instance" from the context menu.
+  </Step>
+  
+  <Step title="Configure New Instance">
+    Provide a new name and optionally modify:
+    - Group assignment
+    - Icon
+    - Whether to copy saves and screenshots
+  </Step>
+  
+  <Step title="Create Copy">
+    The launcher creates a complete copy using the staging system:
+    - Temporary staging area is created via `getStagedInstancePath()`
+    - Files are copied to the staging area
+    - Instance is committed with `commitStagedInstance()`
+  </Step>
+</Steps>
+
+<Note>
+Duplication preserves mods, resource packs, and configurations. World saves can be optionally included or excluded.
+</Note>
+
+## Instance Lifecycle Management
+
+### Instance Status
+
+Instances have two status states:
+- **Present**: Normal, available instance
+- **Gone**: Invalidated or deleted instance
+
+Status changes emit `statusChanged` signals for UI updates.
+
+### Running State
+
+The launcher tracks instance execution:
+
+```cpp
+bool isRunning()          // Check if instance is currently running
+void setRunning(bool)     // Set running state
+int64_t totalTimePlayed() // Total play time in milliseconds
+int64_t lastTimePlayed()  // Duration of last session
+```
+
+### Launch History
+
+- `lastLaunch()`: Returns timestamp of last launch (milliseconds since epoch)
+- `setLastLaunch()`: Updates last launch time
+- Play time is automatically tracked and persisted
+
+## Deleting Instances
+
+<Tabs>
+  <Tab title="Trash Instance">
+    Prism Launcher supports recoverable deletion:
+    
+    ```cpp
+    trashInstance(instanceId)  // Move to trash
+    undoTrashInstance()        // Restore last trashed instance
+    ```
+    
+    Trashed instances are tracked in `m_trashHistory` with full restoration capability.
+  </Tab>
+  
+  <Tab title="Permanent Delete">
+    For permanent deletion:
+    
+    ```cpp
+    deleteInstance(instanceId)  // Permanently remove
+    ```
+    
+    This removes all instance files and cannot be undone.
+    
+    <Warning>
+    Permanent deletion removes all mods, worlds, and configurations. Ensure you have backups if needed.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Instance Shortcuts
+
+Prism Launcher can create desktop and application menu shortcuts:
+
+### Shortcut Types
+
+- **Desktop**: Places shortcut on desktop
+- **Applications**: Adds to system application menu
+- **Other**: Custom locations
+
+### Managing Shortcuts
+
+```cpp
+registerShortcut(ShortcutData)  // Create and register new shortcut
+QList<ShortcutData> shortcuts() // Get all instance shortcuts
+setShortcuts(list)              // Update shortcut list
+```
+
+Shortcuts store:
+- Name: Display name
+- File path: Location of shortcut file
+- Target: Where shortcut points (Desktop/Applications/Other)
+
+## Instance Linking
+
+Link related instances together:
+
+```cpp
+addLinkedInstanceId(id)         // Add link to another instance
+removeLinkedInstanceId(id)      // Remove link
+isLinkedToInstanceId(id)        // Check if linked
+getLinkedInstances()            // Get all linked instance IDs
+```
+
+Use cases:
+- Linking client and server instances
+- Connecting development and production instances
+- Organizing modpack variations
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Backups" icon="floppy-disk">
+    Export instances regularly to preserve your configurations and worlds. Use the export feature to create portable instance archives.
+  </Card>
+  
+  <Card title="Organized Groups" icon="folder">
+    Use groups to categorize instances by purpose: Vanilla, Modded, Testing, Servers, etc.
+  </Card>
+  
+  <Card title="Descriptive Names" icon="tag">
+    Use clear, descriptive names that indicate version and purpose (e.g., "1.20.1 Create Mod", "1.19 Vanilla Survival").
+  </Card>
+  
+  <Card title="Clean Unused Instances" icon="trash">
+    Regularly review and remove instances you no longer use to save disk space.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Instance Won't Launch
+
+Check the following:
+1. Verify instance status is not "Gone"
+2. Ensure Java is properly configured
+3. Check instance logs for errors
+4. Verify game files are not corrupted
+
+### Instance Disappeared
+
+If an instance is missing:
+- Check if it's in the trash (recoverable via undo)
+- Verify the instance directory still exists
+- Look in the instance folder for the `.cfg` file
+- The instance may have been invalidated if the folder was moved externally
+
+### Cannot Delete Instance
+
+Ensure:
+- Instance is not currently running
+- You have write permissions to the instance directory
+- No other processes are accessing instance files

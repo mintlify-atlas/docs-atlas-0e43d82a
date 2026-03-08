@@ -1,0 +1,458 @@
+---
+title: 'Instance Management API'
+description: 'MinecraftInstance and PackProfile for managing Minecraft instances'
+icon: 'box'
+---
+
+## MinecraftInstance
+
+Concrete implementation of BaseInstance for Minecraft instances.
+
+**Class:** `MinecraftInstance`  
+**Header:** `launcher/minecraft/MinecraftInstance.h`  
+**Inherits:** `BaseInstance`
+
+### Constructor
+
+```cpp
+MinecraftInstance(
+    SettingsObject* globalSettings,
+    std::unique_ptr<SettingsObject> settings,
+    const QString& rootDir
+);
+```
+
+### Directory Structure
+
+<ParamField path="gameRoot()" type="QString">
+  Returns the Minecraft game directory (`.minecraft`).
+</ParamField>
+
+<ParamField path="binRoot()" type="QString">
+  Returns the binary directory for Minecraft executables.
+</ParamField>
+
+<ParamField path="modsRoot()" type="QString">
+  Returns the mods root directory.
+</ParamField>
+
+<ParamField path="jarModsDir()" type="QString">
+  Returns the jar mods directory.
+</ParamField>
+
+<ParamField path="resourcePacksDir()" type="QString">
+  Returns the resource packs directory.
+</ParamField>
+
+<ParamField path="texturePacksDir()" type="QString">
+  Returns the texture packs directory.
+</ParamField>
+
+<ParamField path="shaderPacksDir()" type="QString">
+  Returns the shader packs directory.
+</ParamField>
+
+<ParamField path="dataPacksDir()" type="QString">
+  Returns the data packs directory.
+</ParamField>
+
+<ParamField path="worldDir()" type="QString">
+  Returns the saves/worlds directory.
+</ParamField>
+
+<ParamField path="libDir()" type="QString">
+  Returns the libraries directory.
+</ParamField>
+
+<ParamField path="resourcesDir()" type="QString">
+  Returns the resources directory.
+</ParamField>
+
+### Path Helpers
+
+```cpp
+QDir jarmodsPath() const;
+QDir librariesPath() const;
+QDir versionsPath() const;
+QString instanceConfigFolder() const override;
+QString getNativePath() const;
+QString getLocalLibraryPath() const;
+```
+
+### Resource Management
+
+Access various resource folder models:
+
+<ResponseField name="loaderModList()" type="ModFolderModel*">
+  Returns the loader mods folder model.
+</ResponseField>
+
+<ResponseField name="coreModList()" type="ModFolderModel*">
+  Returns the core mods folder model.
+</ResponseField>
+
+<ResponseField name="nilModList()" type="ModFolderModel*">
+  Returns the nil mods folder model.
+</ResponseField>
+
+<ResponseField name="resourcePackList()" type="ResourcePackFolderModel*">
+  Returns the resource packs folder model.
+</ResponseField>
+
+<ResponseField name="texturePackList()" type="TexturePackFolderModel*">
+  Returns the texture packs folder model.
+</ResponseField>
+
+<ResponseField name="shaderPackList()" type="ShaderPackFolderModel*">
+  Returns the shader packs folder model.
+</ResponseField>
+
+<ResponseField name="dataPackList()" type="DataPackFolderModel*">
+  Returns the data packs folder model.
+</ResponseField>
+
+<ResponseField name="worldList()" type="WorldList*">
+  Returns the worlds list.
+</ResponseField>
+
+<ResponseField name="resourceLists()" type="QList<ResourceFolderModel*>">
+  Returns all resource folder models.
+</ResponseField>
+
+### Profile Management
+
+<ResponseField name="getPackProfile()" type="PackProfile*">
+  Returns the component/version profile for this instance.
+</ResponseField>
+
+### Launch Configuration
+
+<Tabs>
+  <Tab title="Create Tasks">
+    ```cpp
+    QList<Task::Ptr> createUpdateTask() override;
+    ```
+    Creates update tasks for the instance (downloads libraries, assets, etc.).
+    
+    ```cpp
+    LaunchTask* createLaunchTask(
+        AuthSessionPtr account,
+        MinecraftTarget::Ptr targetToJoin
+    ) override;
+    ```
+    Creates a launch task for starting the game.
+  </Tab>
+  
+  <Tab title="Arguments">
+    ```cpp
+    QStringList extraArguments() override;
+    QStringList javaArguments();
+    ```
+    Returns additional JVM and game arguments.
+    
+    ```cpp
+    QStringList processMinecraftArgs(
+        AuthSessionPtr account,
+        MinecraftTarget::Ptr targetToJoin
+    ) const;
+    ```
+    Processes Minecraft arguments with variable substitution.
+  </Tab>
+  
+  <Tab title="Environment">
+    ```cpp
+    QProcessEnvironment createEnvironment() override;
+    QProcessEnvironment createLaunchEnvironment() override;
+    ```
+    Creates environment variables for launching processes.
+    
+    ```cpp
+    QMap<QString, QString> getVariables() override;
+    ```
+    Returns variables for launch command substitution.
+  </Tab>
+</Tabs>
+
+### Java Configuration
+
+<ResponseField name="getJavaVersion()" type="JavaVersion">
+  Returns the Java version required by this instance.
+</ResponseField>
+
+```cpp
+QStringList getClassPath();
+QStringList getNativeJars();
+QString getMainClass() const;
+```
+
+### Utility Methods
+
+<ResponseField name="supportsDemo()" type="bool">
+  Returns true if the instance supports Minecraft demo mode.
+</ResponseField>
+
+<ResponseField name="getJarMods()" type="QList<Mod*>">
+  Returns list of jar mods in the instance.
+</ResponseField>
+
+<ResponseField name="getLauncher()" type="QString">
+  Returns the launcher type/wrapper to use.
+</ResponseField>
+
+<ResponseField name="shouldApplyOnlineFixes()" type="bool">
+  Returns true if online fixes should be applied.
+</ResponseField>
+
+### Example Usage
+
+```cpp
+#include "minecraft/MinecraftInstance.h"
+#include "Application.h"
+
+// Get a Minecraft instance
+BaseInstance* base = APPLICATION->instances()->getInstanceById("my_instance");
+MinecraftInstance* inst = dynamic_cast<MinecraftInstance*>(base);
+
+if (inst) {
+    // Access resource lists
+    ModFolderModel* mods = inst->loaderModList();
+    qDebug() << "Mods:" << mods->size();
+    
+    // Get directories
+    qDebug() << "Mods dir:" << inst->modsRoot();
+    qDebug() << "World dir:" << inst->worldDir();
+    qDebug() << "Resource packs:" << inst->resourcePacksDir();
+    
+    // Work with pack profile
+    PackProfile* profile = inst->getPackProfile();
+    qDebug() << "Minecraft version:" << profile->getComponentVersion("net.minecraft");
+    
+    // Create launch task
+    AuthSessionPtr session = /* get account session */;
+    LaunchTask* task = inst->createLaunchTask(session, nullptr);
+    connect(task, &Task::finished, [task]() {
+        qDebug() << "Launch task finished";
+    });
+    task->start();
+}
+```
+
+---
+
+## PackProfile
+
+Manages the component profile for a Minecraft instance (versions, mods, loaders).
+
+**Class:** `PackProfile`  
+**Header:** `launcher/minecraft/PackProfile.h`  
+**Inherits:** `QAbstractListModel`
+
+### Constructor
+
+```cpp
+explicit PackProfile(MinecraftInstance* instance);
+```
+
+### Component Management
+
+<ResponseField name="getComponent(const QString& id)" type="ComponentPtr">
+  Returns a component by its unique ID (e.g., "net.minecraft", "net.fabricmc.fabric-loader").
+</ResponseField>
+
+<ResponseField name="getComponent(size_t index)" type="ComponentPtr">
+  Returns a component by its index in the profile.
+</ResponseField>
+
+<ResponseField name="appendComponent(ComponentPtr component)" type="void">
+  Adds a component to the profile.
+</ResponseField>
+
+### Version Management
+
+<ResponseField name="getComponentVersion(const QString& uid)" type="QString">
+  Returns the version string for a component.
+</ResponseField>
+
+<ResponseField name="setComponentVersion(const QString& uid, const QString& version, bool important)" type="bool">
+  Sets the version for a component. Returns true on success.
+</ResponseField>
+
+```cpp
+void setOldConfigVersion(const QString& uid, const QString& version);
+```
+
+Sets legacy version mapping from instance config.
+
+### Installation
+
+<Tabs>
+  <Tab title="Jar Mods">
+    ```cpp
+    void installJarMods(QStringList selectedFiles);
+    ```
+    Installs jar mods to the instance.
+    
+    ```cpp
+    void installCustomJar(QString selectedFile);
+    ```
+    Installs a custom jar as the main game jar.
+  </Tab>
+  
+  <Tab title="Components">
+    ```cpp
+    bool installComponents(QStringList selectedFiles);
+    ```
+    Installs Prism/MultiMC component files.
+    
+    ```cpp
+    bool installEmpty(const QString& uid, const QString& name);
+    ```
+    Creates an empty component with the given UID.
+  </Tab>
+  
+  <Tab title="Agents">
+    ```cpp
+    void installAgents(QStringList selectedFiles);
+    ```
+    Installs Java agent files to the instance.
+  </Tab>
+</Tabs>
+
+### Component Operations
+
+```cpp
+enum MoveDirection { MoveUp, MoveDown };
+```
+
+<ResponseField name="move(int index, MoveDirection direction)" type="void">
+  Moves a component up or down in the load order.
+</ResponseField>
+
+<ResponseField name="remove(int index)" type="bool">
+  Removes a component by index. Returns true on success.
+</ResponseField>
+
+<ResponseField name="remove(const QString& id)" type="bool">
+  Removes a component by ID. Returns true on success.
+</ResponseField>
+
+<ResponseField name="customize(int index)" type="bool">
+  Customizes a component (creates editable patch). Returns true on success.
+</ResponseField>
+
+<ResponseField name="revertToBase(int index)" type="bool">
+  Reverts a customized component to its base version. Returns true on success.
+</ResponseField>
+
+### Profile Operations
+
+<Expandable title="Result Type">
+  ```cpp
+  struct Result {
+      bool success;
+      QString error;
+      
+      operator bool() const { return success; }
+      
+      static Result Success() { return { true, "" }; }
+      static Result Error(const QString& errorMessage) { return { false, errorMessage }; }
+  };
+  ```
+</Expandable>
+
+<ResponseField name="reload(Net::Mode netmode)" type="Result">
+  Reloads the component list and resolves dependencies.
+</ResponseField>
+
+<ResponseField name="resolve(Net::Mode netmode)" type="void">
+  Resolves component dependencies without reloading.
+</ResponseField>
+
+<ResponseField name="saveNow()" type="void">
+  Saves the profile immediately (normally saves are scheduled).
+</ResponseField>
+
+### Launch Profile
+
+<ResponseField name="getProfile()" type="std::shared_ptr<LaunchProfile>">
+  Returns the computed launch profile after resolving all components.
+</ResponseField>
+
+<ResponseField name="invalidateLaunchProfile()" type="void">
+  Marks the launch profile as invalid, requiring recomputation.
+</ResponseField>
+
+### Mod Loader Detection
+
+<ResponseField name="getModLoaders()" type="std::optional<ModPlatform::ModLoaderTypes>">
+  Returns the active mod loader types (Forge, Fabric, Quilt, NeoForge).
+</ResponseField>
+
+<ResponseField name="getSupportedModLoaders()" type="std::optional<ModPlatform::ModLoaderTypes>">
+  Returns supported mod loaders including compatible ones (e.g., Quilt supports Fabric).
+</ResponseField>
+
+<ResponseField name="getModLoadersList()" type="QList<ModPlatform::ModLoaderType>">
+  Returns list of individual mod loader types.
+</ResponseField>
+
+### Model Columns
+
+```cpp
+enum Columns {
+    NameColumn = 0,
+    VersionColumn,
+    NUM_COLUMNS
+};
+```
+
+### Signals
+
+```cpp
+signals:
+    void minecraftChanged();
+```
+
+### Example Usage
+
+```cpp
+#include "minecraft/PackProfile.h"
+#include "minecraft/MinecraftInstance.h"
+
+MinecraftInstance* inst = /* ... */;
+PackProfile* profile = inst->getPackProfile();
+
+// Get Minecraft version
+QString mcVersion = profile->getComponentVersion("net.minecraft");
+qDebug() << "Minecraft version:" << mcVersion;
+
+// Change Minecraft version
+if (profile->setComponentVersion("net.minecraft", "1.20.1", true)) {
+    qDebug() << "Version changed successfully";
+}
+
+// Install Fabric
+if (profile->installEmpty("net.fabricmc.fabric-loader", "Fabric Loader")) {
+    profile->setComponentVersion("net.fabricmc.fabric-loader", "0.15.0");
+}
+
+// Check mod loaders
+auto loaders = profile->getModLoaders();
+if (loaders.has_value()) {
+    qDebug() << "Has mod loader installed";
+}
+
+// Reload profile with network access
+auto result = profile->reload(Net::Mode::Online);
+if (result) {
+    qDebug() << "Profile reloaded successfully";
+} else {
+    qDebug() << "Error:" << result.error;
+}
+
+// Get component by ID
+ComponentPtr mc = profile->getComponent("net.minecraft");
+if (mc) {
+    qDebug() << "Component name:" << mc->getName();
+}
+```

@@ -1,0 +1,403 @@
+---
+title: Technic Modpack Support
+description: Install and play Technic Platform modpacks in Prism Launcher
+---
+
+The Technic Platform is a long-standing modpack hosting service that hosts both official Technic packs and thousands of community-created modpacks. Prism Launcher provides full support for browsing and installing Technic modpacks.
+
+## Overview
+
+The Technic Platform integration offers:
+
+- **Complete Technic catalog** - Browse all public Technic modpacks
+- **Multiple pack formats** - Support for both ZIP and Solder-based packs
+- **Direct URL installation** - Install packs by URL or slug
+- **Platform search** - Search the Technic Platform modpack database
+- **Automatic updates** - Solder packs support version checking
+- **Custom modpack support** - Install custom Technic packs from any URL
+
+## Creating a Technic Instance
+
+<Steps>
+  <Step title="Open the New Instance dialog">
+    Click **Add Instance** from the main window.
+  </Step>
+  
+  <Step title="Navigate to Technic">
+    Select the **Technic** tab in the new instance dialog.
+  </Step>
+  
+  <Step title="Search or enter URL">
+    Either:
+    - Use the search bar to find modpacks on the Technic Platform
+    - Enter a direct modpack URL or slug
+  </Step>
+  
+  <Step title="Select a modpack">
+    Click on a search result or let the URL load the modpack details.
+  </Step>
+  
+  <Step title="Choose version (if applicable)">
+    For Solder-based packs, select from available versions. Single-ZIP packs have only one version.
+  </Step>
+  
+  <Step title="Create the instance">
+    Click **OK** to download and install the modpack.
+  </Step>
+</Steps>
+
+## Pack Formats
+
+Technic Platform supports two main modpack formats:
+
+### Single ZIP Packs
+
+**Structure**
+- Complete modpack in a single ZIP archive
+- Contains mods, configs, and Minecraft version
+- Simpler format, easier to create
+- No built-in update mechanism
+
+**Installation Process**
+1. Download the ZIP file
+2. Extract contents to instance directory
+3. Detect Minecraft version from pack
+4. Configure mod loader if present
+
+<Note>
+Single ZIP packs are the simplest format and work well for smaller modpacks or personal distributions.
+</Note>
+
+### Solder Packs
+
+**Structure**
+- API-based modpack distribution system
+- Mods hosted as individual components
+- Version management and updates
+- More complex but more powerful
+
+**Features**
+- **Multiple versions** - Recommended, latest, and specific builds
+- **Incremental updates** - Only download changed mods
+- **Mod manifests** - Detailed mod metadata and dependencies
+- **Build tracking** - Track which build is installed
+
+<Info>
+Solder is the recommended format for larger, actively maintained modpacks. It provides better update support and more efficient downloads.
+</Info>
+
+## Solder API
+
+Technic Solder uses a REST API for modpack distribution.
+
+### Pack Metadata
+
+```json
+{
+  "name": "technic-pack",
+  "display_name": "My Technic Pack",
+  "url": "https://example.com/modpack/technic-pack",
+  "icon": "https://example.com/icon.png",
+  "icon_md5": "abc123",
+  "logo": "https://example.com/logo.png",
+  "logo_md5": "def456",
+  "background": "https://example.com/bg.png",
+  "background_md5": "ghi789",
+  "recommended": "1.0.0",
+  "latest": "1.1.0",
+  "builds": ["1.1.0", "1.0.0", "0.9.0"]
+}
+```
+
+### Build Information
+
+```json
+{
+  "minecraft": "1.20.1",
+  "minecraft_md5": "...",
+  "forge": "47.2.0",
+  "java": "17",
+  "memory": "4G",
+  "mods": [
+    {
+      "name": "example-mod",
+      "version": "1.0",
+      "url": "https://example.com/mods/example-mod-1.0.jar",
+      "md5": "abc123",
+      "filesize": 1024000
+    }
+  ]
+}
+```
+
+<Info>
+Solder manifests include MD5 checksums for all files, ensuring download integrity and enabling efficient caching.
+</Info>
+
+## Installation Process
+
+### Single ZIP Installation
+
+<Steps>
+  <Step title="Download ZIP">
+    Fetch the modpack ZIP file from the URL.
+  </Step>
+  
+  <Step title="Extract archive">
+    Unzip contents to a temporary staging directory.
+  </Step>
+  
+  <Step title="Detect configuration">
+    Identify Minecraft version, mod loader, and mods from the extracted files.
+  </Step>
+  
+  <Step title="Process modpack">
+    Use `TechnicPackProcessor` to set up the instance with correct settings.
+  </Step>
+  
+  <Step title="Finalize instance">
+    Move files to the final instance directory and configure launcher settings.
+  </Step>
+</Steps>
+
+### Solder Installation
+
+<Steps>
+  <Step title="Query Solder API">
+    Fetch pack metadata and available builds.
+  </Step>
+  
+  <Step title="Select build">
+    Choose recommended, latest, or specific version.
+  </Step>
+  
+  <Step title="Download build manifest">
+    Get the list of mods and files for the selected build.
+  </Step>
+  
+  <Step title="Download mods">
+    Fetch each mod file individually, with MD5 verification.
+  </Step>
+  
+  <Step title="Configure instance">
+    Set up Minecraft version, Forge/Fabric, and launcher settings.
+  </Step>
+</Steps>
+
+<Note>
+Solder installations are more complex but provide better progress reporting and error handling.
+</Note>
+
+## Searching the Platform
+
+The Technic Platform provides a search API:
+
+**Search Query**
+```
+https://www.technicpack.net/api/search?build=<build>&q=<query>
+```
+
+**Results**
+- Modpack name and slug
+- Author information
+- Pack description
+- Download counts
+- Platform URL
+
+The search interface shows:
+- Pack icon/logo
+- Name and author
+- Short description
+- Install count
+
+## Direct URL Installation
+
+You can install Technic packs directly by URL or slug:
+
+**Supported formats:**
+- Full URL: `https://www.technicpack.net/modpack/pack-slug`
+- Short URL: `https://technicpack.net/modpack/pack-slug`
+- Just slug: `pack-slug`
+- API URL: Direct Solder API endpoint
+
+<Steps>
+  <Step title="Copy pack URL">
+    Get the modpack URL from Technic Platform or another source.
+  </Step>
+  
+  <Step title="Paste in Technic tab">
+    Enter the URL in the search/URL field of the Technic tab.
+  </Step>
+  
+  <Step title="Load pack">
+    The launcher will fetch and display the modpack information.
+  </Step>
+  
+  <Step title="Install">
+    Proceed with installation as normal.
+  </Step>
+</Steps>
+
+## Version Selection
+
+For Solder-based packs, you can choose from:
+
+### Build Types
+
+- **Recommended** - Pack author's recommended stable version
+- **Latest** - Most recent build (may be beta/alpha)
+- **Specific builds** - Any previous version listed in the manifest
+
+### Version Display
+
+The version dropdown shows:
+- Build name/number
+- Minecraft version
+- Installation status (if already installed)
+
+<Warning>
+Latest builds may be unstable. Use the recommended build unless you have a specific reason to use another version.
+</Warning>
+
+## Custom Technic Packs
+
+You can create and distribute your own Technic-format modpacks:
+
+### Single ZIP Format
+
+<Steps>
+  <Step title="Create pack structure">
+    Organize mods, configs, and resources in the standard Technic layout.
+  </Step>
+  
+  <Step title="Include version info">
+    Add a `version.json` or similar file specifying Minecraft and mod loader versions.
+  </Step>
+  
+  <Step title="Create ZIP archive">
+    Compress the pack into a ZIP file.
+  </Step>
+  
+  <Step title="Host the file">
+    Upload to a web server or file hosting service.
+  </Step>
+  
+  <Step title="Share the URL">
+    Users can install directly from the URL using Prism Launcher.
+  </Step>
+</Steps>
+
+### Solder API Format
+
+<Info>
+For Solder packs, you need to set up a Solder API server. See the Technic Solder documentation for details on hosting your own repository.
+</Info>
+
+## Technic Pack Processor
+
+The `TechnicPackProcessor` handles pack configuration:
+
+**Responsibilities:**
+- Detect Minecraft version from pack
+- Identify mod loader (Forge/Fabric) and version
+- Configure instance name and icon
+- Set up game settings and profiles
+- Handle special Solder pack requirements
+
+**Processing steps:**
+1. Scan for version information
+2. Configure mod loader
+3. Set instance metadata
+4. Apply custom settings
+5. Finalize and validate
+
+## Update Checking
+
+For Solder packs, Prism Launcher can check for updates:
+
+<Steps>
+  <Step title="Query Solder API">
+    Fetch current build information for the pack.
+  </Step>
+  
+  <Step title="Compare versions">
+    Check installed build against latest/recommended.
+  </Step>
+  
+  <Step title="Notify user">
+    Display update notification if newer version available.
+  </Step>
+  
+  <Step title="Update (optional)">
+    User can choose to update to the new build.
+  </Step>
+</Steps>
+
+<Note>
+Single ZIP packs don't support automatic update checking. You'll need to manually check for new versions.
+</Note>
+
+## Troubleshooting
+
+### Common Issues
+
+**"Failed to download modpack"**
+- Verify the URL is correct and accessible
+- Check your internet connection
+- Some packs may have been removed or made private
+
+**"Invalid modpack format"**
+- Ensure the ZIP contains a valid Technic pack structure
+- Check that version information is present
+- Verify the pack wasn't corrupted during download
+
+**"Solder API error"**
+- The Solder server may be down or unreachable
+- Check if the API URL is correct
+- Try again later if the server is temporarily unavailable
+
+**"Failed to extract modpack"**
+- Verify you have enough disk space
+- Check file permissions in the instance directory
+- The ZIP file may be corrupted - try re-downloading
+
+**"Version detection failed"**
+- The pack may be using a non-standard structure
+- Check if version information is present in the pack
+- Try a different version or contact the pack author
+
+### MD5 Verification Failures
+
+<Warning>
+If MD5 checksums don't match, the file may be corrupted or tampered with. The launcher will reject the file for security reasons.
+</Warning>
+
+To resolve:
+1. Try downloading again
+2. Check if the pack has been updated
+3. Contact the pack author if the issue persists
+
+## Platform Differences
+
+Technic Platform differs from other platforms:
+
+**Advantages:**
+- Very open - easy to create and host custom packs
+- No approval process or restrictions
+- Simple pack format for basic modpacks
+- Direct URL installation
+
+**Limitations:**
+- Less sophisticated than modern platforms
+- Limited metadata and search capabilities
+- No built-in mod updating for single ZIP packs
+- Fewer hosting tools and features
+
+## Source Code Reference
+
+The Technic Platform integration is implemented in:
+- `/launcher/modplatform/technic/TechnicPackProcessor.h` - Pack processing
+- `/launcher/modplatform/technic/SolderPackManifest.h` - Solder API structures
+- `/launcher/modplatform/technic/SolderPackInstallTask.cpp` - Solder installation
+- `/launcher/modplatform/technic/SingleZipPackInstallTask.cpp` - ZIP installation
+- `/launcher/ui/pages/modplatform/technic/TechnicPage.cpp` - User interface

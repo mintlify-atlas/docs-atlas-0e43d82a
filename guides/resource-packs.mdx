@@ -1,0 +1,467 @@
+---
+title: Managing Resource Packs and Shaders
+description: Guide to installing and managing resource packs, texture packs, and shader packs in Prism Launcher
+---
+
+Prism Launcher provides dedicated management systems for visual customization through resource packs, texture packs, and shader packs.
+
+## Resource Pack Types
+
+Prism Launcher distinguishes between three types of visual modifications:
+
+<CardGroup cols={3}>
+  <Card title="Resource Packs" icon="box">
+    Modern Minecraft resource packs (1.6+) that modify textures, sounds, models, and more.
+  </Card>
+  
+  <Card title="Texture Packs" icon="image">
+    Legacy texture packs for older Minecraft versions (pre-1.6).
+  </Card>
+  
+  <Card title="Shader Packs" icon="sparkles">
+    Shader modifications for advanced lighting, shadows, and visual effects (OptiFine/Iris).
+  </Card>
+</CardGroup>
+
+## Directory Structure
+
+Each instance maintains separate directories for visual assets:
+
+```
+instance/.minecraft/
+├── resourcepacks/      # Modern resource packs
+├── texturepacks/       # Legacy texture packs
+└── shaderpacks/        # Shader packs
+```
+
+Accessed via:
+```cpp
+resourcePacksDir()     // Get resource packs directory
+texturePacksDir()      // Get texture packs directory
+shaderPacksDir()       // Get shader packs directory
+```
+
+## Resource Pack Management
+
+### Understanding Resource Packs
+
+Resource packs inherit from `DataPack` class and provide:
+
+```cpp
+compatibleVersions()   // Returns min/max supported MC versions
+```
+
+Each resource pack contains:
+- `pack.mcmeta`: Metadata file with pack format and description
+- `assets/`: Directory with textures, models, sounds, etc.
+- Optional pack icon (`pack.png`)
+
+### Installing Resource Packs
+
+<Tabs>
+  <Tab title="Direct Installation">
+    <Steps>
+      <Step title="Open Resource Packs">
+        Right-click instance → "Edit Instance" → "Resource Packs"
+      </Step>
+      
+      <Step title="Add Resource Pack">
+        Click "Add" or drag & drop `.zip` files:
+        
+        ```cpp
+        installResource(path)  // Install resource pack
+        ```
+        
+        The launcher:
+        - Validates pack format
+        - Checks Minecraft version compatibility
+        - Copies to resourcepacks directory
+      </Step>
+      
+      <Step title="Review Pack Info">
+        Prism displays:
+        - Pack name and description
+        - Pack format version
+        - Compatible Minecraft versions
+        - File size and date
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Download from Platforms">
+    <Steps>
+      <Step title="Browse Packs">
+        Use the built-in browser for:
+        - **CurseForge** resource packs
+        - **Modrinth** resource packs
+      </Step>
+      
+      <Step title="Filter by Version">
+        Packs are automatically filtered by:
+        - Your Minecraft version
+        - Pack format compatibility
+      </Step>
+      
+      <Step title="Install Selected">
+        Downloaded packs are automatically:
+        - Placed in correct directory
+        - Parsed for metadata
+        - Ready to enable in-game
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Manual Installation">
+    <Steps>
+      <Step title="Download Pack">
+        Obtain resource pack `.zip` file from the pack creator.
+      </Step>
+      
+      <Step title="Open Folder">
+        Click "View Folder" to open the resourcepacks directory.
+      </Step>
+      
+      <Step title="Copy File">
+        Place the `.zip` file (or unzipped folder) into resourcepacks directory.
+        
+        The `QFileSystemWatcher` automatically detects new files:
+        ```cpp
+        directoryChanged(path)  // Triggered on new files
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Note>
+Resource packs can be in `.zip` format or as uncompressed directories. Both are supported by the launcher and Minecraft.
+</Note>
+
+### Resource Pack List Interface
+
+The `ResourcePackFolderModel` manages resource pack display:
+
+#### Available Columns
+
+- **Active**: Enable/disable toggle
+- **Name**: Resource pack name from `pack.mcmeta`
+- **Last Modified**: File modification date
+- **Provider**: Source (CurseForge, Modrinth, Local)
+- **Size**: Pack file size
+
+#### Sorting Options
+
+Sort resource packs by:
+```cpp
+SortType::ENABLED      // Active packs first
+SortType::NAME         // Alphabetical
+SortType::DATE         // Most recent first
+SortType::PROVIDER     // By source platform
+SortType::SIZE         // By file size
+```
+
+### Pack Format Compatibility
+
+Resource packs use pack formats tied to Minecraft versions:
+
+```cpp
+compatibleVersions()   // Returns pair<minVersion, maxVersion>
+```
+
+Common pack formats:
+- Pack format 1-3: Minecraft 1.6-1.10
+- Pack format 4-5: Minecraft 1.11-1.12
+- Pack format 6-9: Minecraft 1.13-1.16
+- Pack format 10+: Minecraft 1.17+
+
+<Warning>
+Using resource packs with incompatible pack formats may cause missing textures or game crashes. Always check version compatibility.
+</Warning>
+
+## Texture Pack Management (Legacy)
+
+For older Minecraft versions (pre-1.6):
+
+### Texture Pack Structure
+
+Legacy texture packs use a simpler structure:
+- Direct texture files (`.png`)
+- `pack.txt` for metadata (optional)
+- No pack format versioning
+
+### Managing Texture Packs
+
+```cpp
+texturePackList()      // Access TexturePackFolderModel
+```
+
+The `TexturePackFolderModel` provides:
+- File listing and sorting
+- Enable/disable functionality
+- Installation and removal
+
+Usage is similar to resource packs but for legacy Minecraft versions.
+
+## Shader Pack Management
+
+### Understanding Shader Packs
+
+Shader packs require:
+- **OptiFine** (Forge) or **Iris** (Fabric) mod installed
+- Graphics card with shader support
+- Compatible shader pack for your Minecraft version
+
+### Shader Pack Format
+
+Shader packs are validated by checking for required structure:
+
+```cpp
+enum class ShaderPackFormat {
+    VALID,    // Contains required shaders/ directory
+    INVALID   // Missing required files
+}
+```
+
+A valid shader pack must contain:
+```
+shaderpack/
+└── shaders/
+    ├── composite.fsh
+    ├── final.fsh
+    └── ...
+```
+
+### Installing Shader Packs
+
+<Steps>
+  <Step title="Verify Shader Mod">
+    Ensure OptiFine or Iris is installed:
+    - **Forge**: Install OptiFine mod
+    - **Fabric**: Install Iris + Sodium mods
+  </Step>
+  
+  <Step title="Access Shader Packs">
+    Right-click instance → "Edit Instance" → "Shader Packs"
+  </Step>
+  
+  <Step title="Add Shader Pack">
+    Install shader packs:
+    
+    ```cpp
+    shaderPackList()       // Access ShaderPackFolderModel
+    installResource(path)  // Install shader pack
+    ```
+    
+    Prism validates:
+    - Presence of `shaders/` directory
+    - Basic shader file structure
+  </Step>
+  
+  <Step title="Activate in Game">
+    Shader packs are selected within Minecraft:
+    - Options → Video Settings → Shaders
+    - Choose from installed shader packs
+  </Step>
+</Steps>
+
+### Shader Pack Properties
+
+```cpp
+packFormat()           // Returns VALID or INVALID
+setPackFormat(format)  // Update validation status (thread-safe)
+valid()                // Check if shader pack is usable
+```
+
+<Note>
+Shader packs may contain `shaders.properties` for configuration, but Prism Launcher doesn't parse these as they're managed by the shader mod.
+</Note>
+
+## Common Operations
+
+### Enabling and Disabling
+
+Control which packs are active:
+
+```cpp
+setResourceEnabled(indexes, action)  // Enable/disable packs
+```
+
+Actions:
+- **ENABLE**: Activate selected packs
+- **DISABLE**: Deactivate selected packs  
+- **TOGGLE**: Switch state
+
+For resource/texture packs:
+- Enabled packs are available in-game
+- In-game pack order determines priority
+
+For shader packs:
+- All installed packs appear in-game
+- Only one shader can be active at a time
+
+### Removing Packs
+
+<Tabs>
+  <Tab title="Recoverable Deletion">
+    ```cpp
+    deleteResources(indexes)  // Remove selected packs
+    ```
+    
+    Attempts to:
+    1. Move to system trash (recoverable)
+    2. Fall back to permanent deletion if trash unavailable
+  </Tab>
+  
+  <Tab title="Uninstallation">
+    ```cpp
+    uninstallResource(filename, preserve_metadata)
+    ```
+    
+    Options:
+    - `preserve_metadata=false`: Complete removal
+    - `preserve_metadata=true`: Keep download info for reinstall
+  </Tab>
+</Tabs>
+
+### Updating Packs
+
+Update installed packs:
+
+<Steps>
+  <Step title="Check Updates">
+    For packs from CurseForge/Modrinth:
+    - Launcher queries for newer versions
+    - Compares with installed version
+    - Shows update notifications
+  </Step>
+  
+  <Step title="Download Updates">
+    ```cpp
+    update()  // Refresh pack list and check updates
+    ```
+  </Step>
+  
+  <Step title="Replace Pack">
+    New version downloads and replaces old version automatically.
+  </Step>
+</Steps>
+
+## Resource Folder Model System
+
+All visual asset types use the `ResourceFolderModel` base class:
+
+### Core Features
+
+```cpp
+startWatching()        // Monitor directory for changes
+stopWatching()         // Stop monitoring
+update()               // Refresh pack list
+resolveResource()      // Parse pack metadata
+```
+
+### File System Monitoring
+
+```cpp
+QFileSystemWatcher m_watcher;  // Watches for file changes
+```
+
+Automatically detects:
+- New packs added
+- Packs removed
+- Pack files modified
+
+UI updates automatically when changes detected.
+
+### Metadata Indexing
+
+```cpp
+indexDir()             // Returns .index/ directory
+```
+
+Metadata cache structure:
+```
+.minecraft/resourcepacks/.index/
+├── pack_1.json
+├── pack_2.json
+└── ...
+```
+
+Benefits:
+- Fast loading without reparsing
+- Persists download source info
+- Enables version checking
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Version Compatibility" icon="code-branch">
+    Always check pack format compatibility with your Minecraft version before installing.
+  </Card>
+  
+  <Card title="Performance Impact" icon="gauge-high">
+    Shader packs can significantly impact FPS. Start with lightweight shaders and adjust settings.
+  </Card>
+  
+  <Card title="Pack Organization" icon="folder-tree">
+    Remove unused packs to reduce clutter and make selection easier in-game.
+  </Card>
+  
+  <Card title="Backup Customizations" icon="floppy-disk">
+    Export your instance to preserve resource pack configurations and custom packs.
+  </Card>
+</CardGroup>
+
+## In-Game Configuration
+
+### Resource Pack Priority
+
+In Minecraft options:
+1. Select which packs to enable
+2. Order packs by priority (top = highest)
+3. Higher priority packs override lower ones
+4. Apply changes and reload resources
+
+### Shader Settings
+
+In shader options (OptiFine/Iris):
+- Choose active shader pack
+- Configure shader-specific settings
+- Adjust quality vs. performance
+- Test different packs for your hardware
+
+## Troubleshooting
+
+### Resource Pack Not Appearing
+
+Check:
+1. File is in correct directory (`resourcepacks/` not `mods/`)
+2. File is `.zip` or valid directory
+3. Contains valid `pack.mcmeta`
+4. Pack format matches Minecraft version
+5. Restart launcher if file was added externally
+
+### Shaders Not Working
+
+Verify:
+1. OptiFine or Iris mod is installed and active
+2. Shader pack is in `shaderpacks/` directory
+3. Shader pack contains `shaders/` folder
+4. Graphics drivers are updated
+5. GPU supports required OpenGL version
+
+### Missing Textures
+
+If textures appear missing or purple:
+1. Resource pack format doesn't match MC version
+2. Resource pack is incomplete or corrupted
+3. Pack is designed for different Minecraft edition (Java vs Bedrock)
+4. Try disabling and re-enabling the pack in-game
+
+### Performance Issues
+
+If experiencing lag:
+- Reduce shader quality settings
+- Try lighter shader packs
+- Limit number of active resource packs
+- Check if resource packs include high-resolution textures
+- Consider increasing allocated RAM

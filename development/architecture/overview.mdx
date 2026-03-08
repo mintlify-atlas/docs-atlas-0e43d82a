@@ -1,0 +1,238 @@
+---
+title: Architecture Overview
+description: Understanding Prism Launcher's Qt-based architecture and core components
+---
+
+Prism Launcher is built as a modern Qt application with a modular architecture designed for managing and launching multiple Minecraft instances. This page provides an overview of the application's structure and key architectural components.
+
+## Application Foundation
+
+Prism Launcher is structured as a Qt5/Qt6 application with a clear separation of concerns between the UI layer and core functionality.
+
+### Core Application Class
+
+The `Application` class serves as the central coordinator of the entire launcher, managing all major subsystems.
+
+```cpp
+class Application : public QApplication {
+    // Core services
+    std::unique_ptr<InstanceList> m_instances;
+    std::unique_ptr<AccountList> m_accounts;
+    std::unique_ptr<HttpMetaCache> m_metacache;
+    std::unique_ptr<Meta::Index> m_metadataIndex;
+    std::unique_ptr<QNetworkAccessManager> m_network;
+    
+    // UI management
+    MainWindow* m_mainWindow;
+    std::map<QString, InstanceXtras> m_instanceExtras;
+};
+```
+
+*Source: `launcher/Application.h:99-325`*
+
+<Info>
+The `Application` singleton can be accessed anywhere in the codebase using the `APPLICATION` macro, which casts `QCoreApplication::instance()` to an `Application*`.
+</Info>
+
+### Key Responsibilities
+
+The Application class manages:
+
+- **Instance Management** - Maintains the list of Minecraft instances via `InstanceList`
+- **Account System** - Handles authentication through `AccountList` 
+- **Network Operations** - Provides centralized `QNetworkAccessManager` for all HTTP requests
+- **Settings** - Global application settings via `SettingsObject`
+- **Metadata** - Minecraft version metadata through `Meta::Index`
+- **UI Coordination** - Main window, instance windows, and dialog management
+- **Update System** - Optional external updater integration
+
+## Component Hierarchy
+
+```
+Application (QApplication)
+├── InstanceList
+│   └── BaseInstance (abstract)
+│       └── MinecraftInstance
+├── AccountList
+│   └── MinecraftAccount
+│       └── AuthFlow
+├── MainWindow
+│   ├── InstanceWindow (per-instance)
+│   └── ViewLogWindow
+├── Meta::Index
+│   └── Version metadata
+├── HttpMetaCache
+└── QNetworkAccessManager
+```
+
+## Instance Architecture
+
+### BaseInstance Abstract Class
+
+All instances inherit from `BaseInstance`, which defines the common interface:
+
+```cpp
+class BaseInstance : public QObject {
+public:
+    // Identity and state
+    virtual QString id() const;
+    virtual QString instanceType() const;
+    virtual Status currentStatus() const;
+    
+    // Lifecycle
+    virtual void saveNow() = 0;
+    virtual LaunchTask* createLaunchTask(AuthSessionPtr account, 
+                                         MinecraftTarget::Ptr targetToJoin) = 0;
+    virtual QList<Task::Ptr> createUpdateTask() = 0;
+    
+    // Properties
+    virtual QString modsRoot() const = 0;
+    virtual QSet<QString> traits() const = 0;
+    virtual bool canEdit() const = 0;
+    virtual bool canExport() const = 0;
+};
+```
+
+*Source: `launcher/BaseInstance.h:89-325`*
+
+### MinecraftInstance Implementation
+
+The concrete `MinecraftInstance` class implements Minecraft-specific functionality:
+
+- **Mod Management** - Multiple mod loaders (Forge, Fabric, Quilt, NeoForge)
+- **Resource Management** - Resource packs, shader packs, texture packs, data packs
+- **World Management** - Save file handling
+- **Version Profiles** - Component/patch system via `PackProfile`
+- **Launch Configuration** - Java arguments, environment variables, launch scripts
+
+*Source: `launcher/minecraft/MinecraftInstance.h:56-175`*
+
+## Task-Based Operations
+
+Prism Launcher uses Qt's task/signal pattern extensively for asynchronous operations:
+
+<Accordion title="Task Pattern Example">
+```cpp
+// All long-running operations extend Task
+class Task : public QObject {
+signals:
+    void started();
+    void finished();
+    void failed(QString reason);
+    void progress(qint64 current, qint64 total);
+};
+
+// Examples:
+- LaunchTask - Launching an instance
+- InstanceCreationTask - Creating new instances  
+- AuthFlow - Authentication operations
+- UpdateTask - Updating instance components
+```
+</Accordion>
+
+## Settings System
+
+Settings are managed hierarchically through `SettingsObject`:
+
+- **Global Settings** - Application-wide configuration
+- **Instance Settings** - Per-instance overrides that inherit from global
+- **INI-based Storage** - Persistent storage in INI format
+
+<Note>
+Instance settings automatically fall back to global settings when not explicitly overridden, allowing users to set defaults globally and override per-instance as needed.
+</Note>
+
+## Network Architecture
+
+All network operations go through the centralized `QNetworkAccessManager`:
+
+- **HTTP Metacache** - Caches API responses and downloaded files
+- **Proxy Support** - Configurable proxy settings
+- **User Agent** - Consistent user agent across all requests
+- **API Keys** - Centralized management of API keys for mod platforms
+
+## UI Organization
+
+### Window Management
+
+```cpp
+struct InstanceXtras {
+    InstanceWindow* window;  // Per-instance console window
+    std::unique_ptr<LaunchController> controller;  // Launch management
+};
+```
+
+The application maintains:
+- **One MainWindow** - Primary interface showing instance list
+- **Multiple InstanceWindows** - One per running instance for log viewing
+- **Modal Dialogs** - Settings, account management, instance creation
+
+### Theme System
+
+The launcher supports multiple themes through `ThemeManager`:
+- System theme integration
+- Custom color schemes
+- Icon theme support
+- Dark/Light mode variants
+
+## Capability Detection
+
+The application detects platform capabilities at startup:
+
+```cpp
+enum Capability {
+    SupportsMSA = 1 << 0,      // Microsoft account authentication
+    SupportsFlame = 1 << 1,    // CurseForge API access
+    SupportsGameMode = 1 << 2, // Linux GameMode
+    SupportsMangoHud = 1 << 3, // MangoHud overlay
+};
+```
+
+*Source: `launcher/Application.h:105-113`*
+
+## Data Storage
+
+### Directory Structure
+
+- **Root Path** (`m_rootPath`) - Installation directory for updates
+- **Data Path** (`m_dataPath`) - User data and configuration
+  - `instances/` - Instance directories
+  - `accounts.json` - Account storage
+  - `metacache/` - HTTP cache
+  - `icons/` - Custom icons
+
+### Portable Mode
+
+When `portable.txt` exists in the root, all data is stored relative to the executable, enabling USB drive installations.
+
+## Thread Safety
+
+The application uses Qt's signal/slot mechanism for thread-safe communication:
+
+- Main thread handles all UI operations
+- Worker threads for network, file operations
+- `QMutex` for shared data structures
+- Signals automatically queued across thread boundaries
+
+## Extension Points
+
+The architecture allows extensions through:
+
+- **Profiler Integration** - Custom profiler tools
+- **External Tools** - MCEdit and other utilities
+- **Custom Themes** - Theme packs
+- **Translation Support** - Internationalization via Qt Linguist
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Instance Management" icon="cube" href="./instance-management">
+    Learn how instances are created, managed, and launched
+  </Card>
+  <Card title="Authentication" icon="key" href="./authentication">
+    Understand the Microsoft account authentication flow
+  </Card>
+  <Card title="Mod Platform APIs" icon="puzzle-piece" href="./mod-platform-api">
+    Explore integration with CurseForge and Modrinth
+  </Card>
+</CardGroup>

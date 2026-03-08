@@ -1,0 +1,190 @@
+---
+title: Modrinth Integration
+description: Browse, install, and update modpacks from Modrinth in Prism Launcher
+---
+
+Modrinth is a modern, open-source mod hosting platform integrated directly into Prism Launcher. You can browse thousands of modpacks, install them with one click, and keep them up to date automatically.
+
+## Overview
+
+Prism Launcher's Modrinth integration provides:
+
+- **Modpack browsing and installation** - Search and install modpacks from Modrinth's catalog
+- **Automatic updates** - Check for and install modpack updates
+- **Version management** - Browse and install specific modpack versions
+- **Mod loader support** - Full support for Forge, NeoForge, Fabric, Quilt, LiteLoader, and more
+- **Advanced filtering** - Filter by mod loader, Minecraft version, categories, and side compatibility
+- **Export functionality** - Export your instances as Modrinth modpacks
+
+## Creating a Modrinth Instance
+
+<Steps>
+  <Step title="Open the New Instance dialog">
+    Click **Add Instance** from the main window or use the File menu.
+  </Step>
+  
+  <Step title="Navigate to Modrinth">
+    Select the **Modrinth** tab in the new instance dialog.
+  </Step>
+  
+  <Step title="Search for a modpack">
+    Use the search bar to find modpacks. You can filter results by:
+    - **Mod loader** - Forge, NeoForge, Fabric, Quilt, etc.
+    - **Minecraft version** - Compatible game versions
+    - **Categories** - Technology, magic, adventure, etc.
+    - **Side compatibility** - Client-only, server-only, or universal
+  </Step>
+  
+  <Step title="Select and configure">
+    Click on a modpack to view its description and available versions. Choose your preferred version from the dropdown menu.
+  </Step>
+  
+  <Step title="Create the instance">
+    Click **OK** to download and create your instance.
+  </Step>
+</Steps>
+
+## Sorting Options
+
+The Modrinth browser provides several sorting methods:
+
+- **Relevance** - Most relevant to your search query
+- **Downloads** - Total download count
+- **Follows** - Number of followers
+- **Newest** - Recently published modpacks
+- **Last Updated** - Recently updated modpacks
+
+## Technical Details
+
+### API Integration
+
+Prism Launcher uses the Modrinth API v2 to:
+
+- **Search projects** - Query the catalog with faceted search
+- **Fetch project details** - Retrieve descriptions, authors, and metadata
+- **Get versions** - List all available versions with file information
+- **Check updates** - Compare installed versions using SHA-512 hashes
+- **Resolve dependencies** - Automatically download required mods
+
+<Info>
+The integration supports Modrinth's hash-based file identification system, which uses SHA-512 hashes for accurate version detection and update checking.
+</Info>
+
+### Supported Resource Types
+
+Modrinth integration in Prism Launcher handles:
+
+- **Modpacks** (`modpack`)
+- **Mods** (`mod`)
+- **Resource Packs** (`resourcepack`)
+- **Shader Packs** (`shader`)
+- **Data Packs** (`datapack`)
+
+### Mod Loader Compatibility
+
+The Modrinth integration supports extensive mod loader filtering:
+
+- NeoForge
+- Forge
+- Fabric
+- Quilt
+- LiteLoader
+- DataPack
+- Babric
+- BTA (Better Than Adventure)
+- Legacy Fabric
+- Ornithe
+- Rift
+
+## Updating Modrinth Modpacks
+
+Prism Launcher can automatically detect when updates are available for your Modrinth modpacks.
+
+<Steps>
+  <Step title="Check for updates">
+    Right-click your instance and select **Edit Instance**.
+  </Step>
+  
+  <Step title="View available updates">
+    Navigate to the mods or version page to see update notifications.
+  </Step>
+  
+  <Step title="Update files">
+    Click **Update** on individual mods or use bulk update options.
+  </Step>
+</Steps>
+
+<Note>
+Update checking uses file hashes to accurately identify installed versions, even if filenames have changed.
+</Note>
+
+## Exporting to Modrinth
+
+You can export your custom instances as Modrinth modpacks to share with others.
+
+<Steps>
+  <Step title="Open the export dialog">
+    Right-click your instance and select **Export Instance**.
+  </Step>
+  
+  <Step title="Choose Modrinth format">
+    Select **Modrinth** as the export format.
+  </Step>
+  
+  <Step title="Configure export options">
+    Choose which files to include and set metadata.
+  </Step>
+  
+  <Step title="Export">
+    Save the `.mrpack` file to share or upload to Modrinth.
+  </Step>
+</Steps>
+
+## Side Filtering
+
+Modrinth supports filtering mods and modpacks by where they can run:
+
+- **Client Side** - Mods required or optional on the client
+- **Server Side** - Mods required or optional on the server
+- **Universal** - Mods required on both client and server
+
+<Info>
+This helps you find modpacks suitable for single-player, multiplayer servers, or both.
+</Info>
+
+## Open Source Benefits
+
+<Card title="Why Modrinth?" icon="github">
+  Modrinth is an open-source platform that prioritizes creator freedom and user privacy. The Prism Launcher integration is built on Modrinth's open API, ensuring transparency and community-driven development.
+</Card>
+
+## Troubleshooting
+
+<Warning>
+If you encounter issues downloading from Modrinth, check your internet connection and firewall settings. Modrinth uses CDN distribution for fast, reliable downloads.
+</Warning>
+
+### Common Issues
+
+**Modpack fails to install**
+- Verify you have enough disk space
+- Check that the Minecraft version is supported
+- Ensure required mod loaders are available
+
+**Updates not detected**
+- Verify the mod was originally installed from Modrinth
+- Check that file hashes match expected values
+- Manually refresh the mod list
+
+**Search returns no results**
+- Remove filters to broaden search
+- Check spelling in search query
+- Try different keywords
+
+## Source Code Reference
+
+The Modrinth integration is implemented in:
+- `/launcher/modplatform/modrinth/ModrinthAPI.h` - API client interface
+- `/launcher/modplatform/modrinth/ModrinthAPI.cpp` - API implementation
+- `/launcher/modplatform/modrinth/ModrinthPackIndex.h` - Pack metadata handling
+- `/launcher/ui/pages/modplatform/modrinth/ModrinthPage.cpp` - User interface

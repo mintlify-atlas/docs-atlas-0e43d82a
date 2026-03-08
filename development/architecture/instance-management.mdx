@@ -1,0 +1,385 @@
+---
+title: Instance Management
+description: Deep dive into how Prism Launcher manages Minecraft instances internally
+---
+
+Prism Launcher's instance management system provides a flexible architecture for handling multiple Minecraft installations, each with its own configuration, mods, and resource packs.
+
+## InstanceList - The Central Registry
+
+The `InstanceList` class serves as the central registry for all Minecraft instances in the launcher.
+
+```cpp
+class InstanceList : public QAbstractListModel {
+private:
+    std::vector<std::unique_ptr<BaseInstance>> m_instances;
+    QMap<InstanceId, GroupId> m_instanceGroupIndex;
+    QFileSystemWatcher* m_watcher;
+    QString m_instDir;  // Base instances directory
+};
+```
+
+*Source: `launcher/InstanceList.h:72-211`*
+
+### Key Responsibilities
+
+<Accordion title="Instance Discovery and Loading">
+On startup, `InstanceList` scans the instances directory and loads each instance:
+
+```cpp
+QList<InstanceId> discoverInstances();
+std::unique_ptr<BaseInstance> loadInstance(const InstanceId& id);
+```
+
+Each subdirectory in the instances folder is treated as a potential instance, identified by an `instance.cfg` file.
+</Accordion>
+
+<Accordion title="File System Watching">
+The list monitors the instances directory for changes:
+- New instance folders appearing
+- Instance folders being removed
+- Configuration file changes
+
+This allows external tools or manual modifications to be detected automatically.
+</Accordion>
+
+<Accordion title="Group Management">
+Instances can be organized into collapsible groups:
+
+```cpp
+void setInstanceGroup(const InstanceId& id, GroupId name);
+void renameGroup(const GroupId& src, const GroupId& dst);
+void deleteGroup(const GroupId& name);
+bool isGroupCollapsed(const QString& groupName);
+```
+</Accordion>
+
+## Instance Lifecycle
+
+### Creation Process
+
+Instance creation uses a staging pattern to ensure atomicity:
+
+```cpp
+// 1. Create staging area
+QString keyPath = instanceList->getStagedInstancePath();
+
+// 2. Perform creation in staging area (InstanceTask)
+// - Download files
+// - Extract modpacks
+// - Configure settings
+
+// 3. Commit or destroy
+if (success) {
+    instanceList->commitStagedInstance(keyPath, instanceName, groupName, task);
+} else {
+    instanceList->destroyStagingPath(keyPath);
+}
+```
+
+*Source: `launcher/InstanceList.h:128-145`*
+
+<Note>
+The staging pattern ensures that failed instance creations don't leave partial/corrupted instances in the main instances directory.
+</Note>
+
+### Deletion Process
+
+Instances are soft-deleted through a trash system:
+
+```cpp
+bool trashInstance(const InstanceId& id);
+bool undoTrashInstance();
+```
+
+The trash history allows users to undo accidental deletions. Trash items include:
+- Instance directory path
+- Group membership
+- Desktop shortcuts
+
+## BaseInstance - Abstract Interface
+
+All instances implement the `BaseInstance` interface, which defines common functionality.
+
+### Core Properties
+
+```cpp
+class BaseInstance : public QObject {
+protected:
+    QString m_rootDir;                          // Instance directory
+    std::unique_ptr<SettingsObject> m_settings; // Instance-specific settings
+    std::unique_ptr<LaunchTask> m_launchProcess;
+    
+public:
+    virtual QString id() const;           // Unique identifier
+    virtual QString name() const;         // User-visible name
+    virtual QString iconKey() const;      // Icon identifier
+    virtual QString notes() const;        // User notes
+};
+```
+
+*Source: `launcher/BaseInstance.h:89-325`*
+
+### Instance Status
+
+Instances track their operational state:
+
+```cpp
+enum class Status {
+    Present,  // Instance exists and is valid
+    Gone      // Instance has been deleted or invalidated
+};
+
+// Runtime state
+bool isRunning() const;
+int64_t totalTimePlayed() const;
+int64_t lastTimePlayed() const;
+qint64 lastLaunch() const;
+```
+
+### Managed Packs
+
+Instances can be linked to external modpack sources:
+
+```cpp
+bool isManagedPack() const;
+QString getManagedPackType() const;      // "modrinth", "flame", etc.
+QString getManagedPackID() const;        // Project ID
+QString getManagedPackVersionID() const; // Version ID
+
+void setManagedPack(const QString& type, const QString& id, 
+                   const QString& name, const QString& versionId, 
+                   const QString& version);
+```
+
+This allows the launcher to check for and apply modpack updates.
+
+## MinecraftInstance - Concrete Implementation
+
+The `MinecraftInstance` class provides the full Minecraft-specific implementation.
+
+### Resource Management
+
+```cpp
+class MinecraftInstance : public BaseInstance {
+protected:
+    std::unique_ptr<PackProfile> m_components;
+    std::unique_ptr<ModFolderModel> m_loader_mod_list;
+    std::unique_ptr<ModFolderModel> m_core_mod_list;
+    std::unique_ptr<ModFolderModel> m_nil_mod_list;
+    std::unique_ptr<ResourcePackFolderModel> m_resource_pack_list;
+    std::unique_ptr<ShaderPackFolderModel> m_shader_pack_list;
+    std::unique_ptr<TexturePackFolderModel> m_texture_pack_list;
+    std::unique_ptr<DataPackFolderModel> m_data_pack_list;
+    std::unique_ptr<WorldList> m_world_list;
+};
+```
+
+*Source: `launcher/minecraft/MinecraftInstance.h:165-174`*
+
+<Info>
+Each resource type (mods, resource packs, etc.) has its own model class that watches the filesystem and provides a Qt model interface for the UI.
+</Info>
+
+### Directory Structure
+
+A typical Minecraft instance directory:
+
+```
+my-instance/
+├── instance.cfg              # Instance configuration
+├── mmc-pack.json            # Component/version profile
+├── .minecraft/              # Game directory
+│   ├── saves/              # World saves
+│   ├── mods/               # Mod files
+│   ├── resourcepacks/      # Resource packs
+│   ├── shaderpacks/        # Shader packs
+│   ├── config/             # Mod configurations
+│   ├── logs/               # Game logs
+│   └── crash-reports/      # Crash reports
+├── libraries/              # Instance-local libraries
+└── .fabric/                # Loader-specific data
+```
+
+### Component System (PackProfile)
+
+The `PackProfile` manages the version components that make up an instance:
+
+- **Minecraft version** - Base game version
+- **Mod loaders** - Forge, Fabric, Quilt, NeoForge
+- **Libraries** - Additional Java libraries
+- **Tweakers** - Launch-time modifications
+
+Components are layered and can override each other, allowing complex version configurations.
+
+## Instance Launch Process
+
+Launching an instance involves multiple coordinated steps:
+
+```cpp
+// 1. Create launch task
+LaunchTask* task = instance->createLaunchTask(account, targetToJoin);
+
+// 2. LaunchTask builds a sequence of launch steps:
+// - CheckJava
+// - Update components if needed  
+// - Download assets
+// - Extract natives
+// - Build classpath
+// - Prepare authentication
+// - Launch the game process
+
+// 3. Execute task and monitor
+task->start();
+```
+
+### Launch Steps
+
+The launch process is broken into discrete steps:
+
+1. **Pre-launch validation** - Check Java version, verify files
+2. **Update phase** - Download missing assets, libraries, versions
+3. **Preparation** - Extract native libraries, build classpath
+4. **Launch** - Start Minecraft process with correct arguments
+5. **Post-launch** - Monitor process, capture logs, detect crashes
+
+<Accordion title="Launch Arguments Building">
+```cpp
+QStringList javaArguments();
+QStringList processMinecraftArgs(AuthSessionPtr account, 
+                                 MinecraftTarget::Ptr targetToJoin) const;
+QStringList extraArguments();
+QMap<QString, QString> getVariables();
+QProcessEnvironment createLaunchEnvironment();
+```
+
+These methods construct:
+- JVM arguments (memory, GC settings)
+- Minecraft arguments (username, version, directory paths)
+- Custom user arguments
+- Environment variables (Java paths, library paths)
+</Accordion>
+
+## Instance Settings
+
+Settings use a hierarchical override system:
+
+```cpp
+class BaseInstance {
+    SettingsObject* m_global_settings;          // Reference to global
+    std::unique_ptr<SettingsObject> m_settings; // Instance overrides
+};
+
+// Getting a setting:
+// 1. Check instance settings
+// 2. If not set, fall back to global settings
+// 3. If not set, use default value
+```
+
+Common instance settings:
+- Java installation path
+- Memory allocation (min/max)
+- JVM arguments  
+- Window size
+- Pre/post launch commands
+- Environment variables
+
+## Instance Linking
+
+Instances can be linked together for synchronized updates:
+
+```cpp
+QStringList getLinkedInstances() const;
+void setLinkedInstances(const QStringList& list);
+void addLinkedInstanceId(const QString& id);
+bool removeLinkedInstanceId(const QString& id);
+bool isLinkedToInstanceId(const QString& id) const;
+```
+
+This is useful for maintaining multiple instances with the same mod configuration.
+
+## Instance Export
+
+Instances can be exported to various modpack formats:
+
+- **CurseForge/Flame** - `.zip` with manifest
+- **Modrinth** - `.mrpack` format  
+- **MultiMC/Prism** - `.zip` with `mmc-pack.json`
+- **Technic** - Legacy format
+
+Export tasks handle:
+- Filtering which files to include
+- Generating platform-specific manifests
+- Resolving mod metadata
+- Creating archive
+
+## Instance Update Detection
+
+For managed packs, the launcher can detect updates:
+
+```cpp
+bool hasUpdateAvailable() const;
+void setUpdateAvailable(bool value);
+
+// Update check tasks query mod platform APIs
+// comparing current version with latest available
+```
+
+## Runtime Context
+
+Each instance maintains a runtime context with resolved information:
+
+```cpp
+class BaseInstance {
+    RuntimeContext m_runtimeContext;
+    
+    virtual void updateRuntimeContext();
+    RuntimeContext runtimeContext() const;
+};
+```
+
+The runtime context caches computed values like:
+- Resolved Java version
+- Active mod loader type
+- Game version traits
+- Platform-specific settings
+
+## Instance Validation
+
+Instances track various error states:
+
+```cpp
+bool hasVersionBroken() const;    // Component resolution failed
+bool hasUpdateAvailable() const;  // Managed pack has update
+bool hasCrashed() const;          // Last launch crashed
+```
+
+These states affect UI display and available actions.
+
+## Model-View Integration
+
+`InstanceList` extends `QAbstractListModel`, providing Qt model/view integration:
+
+```cpp
+enum AdditionalRoles {
+    GroupRole = Qt::UserRole,
+    InstancePointerRole = 0x34B1CB48,
+    InstanceIDRole = 0x34B1CB49
+};
+
+// Used by Qt views to display instances
+QVariant data(const QModelIndex& index, int role) const override;
+```
+
+The main window's instance list view directly uses this model for efficient updates.
+
+## Performance Considerations
+
+- **Lazy Loading** - Instance resources loaded on-demand
+- **Filesystem Watching** - Efficient change detection
+- **Concurrent Operations** - Multiple instances can update simultaneously
+- **Caching** - Metadata and computed values cached per instance
+
+<Note>
+Large instance lists (100+ instances) remain performant due to the lazy loading strategy and efficient Qt model/view architecture.
+</Note>

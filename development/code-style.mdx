@@ -1,0 +1,461 @@
+---
+title: Code Style Guidelines
+description: Code style conventions and formatting rules for Prism Launcher
+---
+
+Prism Launcher follows specific code style conventions to maintain consistency across the codebase. All contributors must adhere to these guidelines.
+
+## Automatic Formatting
+
+All C++ files are formatted with `clang-format` using the configuration in `.clang-format`.
+
+<Warning>
+  **Always run `clang-format` on changed files before committing!**
+</Warning>
+
+### Running clang-format
+
+```bash
+# Format a single file
+clang-format -i path/to/file.cpp
+
+# Format all modified files in git
+git diff --name-only | grep -E '\.(cpp|h|cc|hpp)$' | xargs clang-format -i
+
+# Check formatting without modifying files
+clang-format --dry-run --Werror path/to/file.cpp
+```
+
+### clang-format Configuration
+
+The project uses a custom clang-format configuration based on Chromium style:
+
+```yaml
+BasedOnStyle: Chromium
+IndentWidth: 4
+AllowShortIfStatementsOnASingleLine: false
+ColumnLimit: 140
+AccessModifierOffset: -1
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: BeforeComma
+Cpp11BracedListStyle: false
+QualifierAlignment: Left
+```
+
+Key formatting rules:
+
+- **Indent width**: 4 spaces
+- **Column limit**: 140 characters
+- **Braces**: Functions have braces on a new line
+- **Short statements**: No single-line if statements
+
+## Naming Conventions
+
+### Classes and Types
+
+Use `PascalCase` for class and type names:
+
+```cpp
+class MyClass { };
+struct Person { };
+enum class PizzaToppings { };
+```
+
+### Member Variables
+
+<Tabs>
+  <Tab title="Private/Protected">
+    Use `camelCase` with `m_` prefix:
+
+    ```cpp
+    class ImportantClass {
+       private:
+        int m_counter;
+        QString m_userName;
+        std::vector<int> m_dataPoints;
+    };
+    ```
+  </Tab>
+
+  <Tab title="Private/Protected Static">
+    Use `camelCase` with `s_` prefix:
+
+    ```cpp
+    class Singleton {
+       private:
+        static Singleton* s_instance;
+        static std::mutex s_mutex;
+    };
+    ```
+  </Tab>
+
+  <Tab title="Public">
+    Use `camelCase` without prefix:
+
+    ```cpp
+    struct Person {
+        QString name;
+        QDateTime dateOfBirth;
+        int age;
+    };
+    ```
+  </Tab>
+
+  <Tab title="Static Const">
+    Use `SCREAMING_SNAKE_CASE` for constants:
+
+    ```cpp
+    class Configuration {
+       public:
+        static constexpr int MAX_CONNECTIONS = 100;
+        static const QString DEFAULT_SERVER;
+       private:
+        static constexpr int DEFAULT_TIMEOUT = 5000;
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Functions
+
+Use `camelCase` for all function names:
+
+```cpp
+class DataProcessor {
+   public:
+    void processData();
+    int calculateSum(int a, int b);
+    bool isValid() const;
+
+   private:
+    void initializeBuffers();
+};
+
+// Global functions also use camelCase
+void globalFunction();
+int computeHash(const QString& data);
+```
+
+### Global Variables and Constants
+
+```cpp
+// Non-const global variables: camelCase
+int globalCounter = 0;
+QString applicationPath;
+
+// Const global variables and macros: SCREAMING_SNAKE_CASE
+const int MAX_BUFFER_SIZE = 4096;
+constexpr double PI = 3.14159;
+
+#define AWESOMENESS 10
+#define VERSION_STRING "1.0.0"
+```
+
+### Enum Constants
+
+Use `PascalCase` for enum values:
+
+```cpp
+enum class PizzaToppings {
+    HamAndPineapple,
+    OreoAndKetchup,
+    ClassicPepperoni
+};
+
+enum class HttpStatus {
+    Ok,
+    NotFound,
+    InternalServerError
+};
+```
+
+## Complete Example
+
+Here's a comprehensive example showing all naming conventions:
+
+```cpp
+#define AWESOMENESS 10
+
+constexpr double PI = 3.14159;
+
+enum class PizzaToppings { HamAndPineapple, OreoAndKetchup };
+
+struct Person {
+    QString name;
+    QDateTime dateOfBirth;
+
+    long daysOld() const { return dateOfBirth.daysTo(QDateTime::currentDateTime()); }
+};
+
+class ImportantClass {
+   public:
+    void incrementCounter()
+    {
+        if (m_counter + 1 > MAX_COUNTER_VALUE)
+            throw std::runtime_error("Counter has reached limit!");
+
+        ++m_counter;
+    }
+
+    int counter() const { return m_counter; }
+
+   private:
+    static constexpr int MAX_COUNTER_VALUE = 100;
+    int m_counter;
+};
+
+ImportantClass importantClassInstance;
+```
+
+## Best Practices
+
+### Avoid Abbreviations
+
+<Note>
+  Avoid inventing acronyms or abbreviations, especially for multi-word names.
+</Note>
+
+```cpp
+// Bad: unclear abbreviation
+TexturePack tp;
+int cnt;
+
+// Good: clear, full names
+TexturePack texturePack;
+int counter;
+```
+
+### Use of [[nodiscard]]
+
+Only use `[[nodiscard]]` when ignoring the return value is likely to cause a bug:
+
+```cpp
+// Good: Memory allocation must be handled
+[[nodiscard]] void* allocateMemory(size_t size);
+
+// Good: Error status should be checked
+[[nodiscard]] bool connectToServer(const QString& host);
+
+// Good: Function might be mistaken for having side effects
+[[nodiscard]] int calculate(int a, int b);
+
+// Bad: Plain getter doesn't need [[nodiscard]]
+int getCount() const;  // Not [[nodiscard]]
+```
+
+<Warning>
+  A plain getter is unlikely to cause confusion. Adding `[[nodiscard]]` to every getter creates clutter and inconsistency.
+</Warning>
+
+### When to Rename
+
+If you encounter names that don't follow these conventions:
+
+- **Preferred**: Leave them as-is to minimize review complexity and merge conflicts
+- **Acceptable**: Rename them if you're already refactoring the entire class
+
+<Note>
+  Unnecessary renames increase the number of changes, making reviews harder and increasing the likelihood of conflicts.
+</Note>
+
+## Static Analysis
+
+### clang-tidy
+
+Most naming conventions are enforced by `clang-tidy`. Run it to check for violations:
+
+```bash
+clang-tidy path/to/file.cpp -- -I./include -I./src
+```
+
+The project includes a `.clang-tidy` configuration that checks:
+
+- Naming conventions
+- Code quality issues
+- Potential bugs
+- Performance problems
+
+### Running Checks in Nix
+
+If using Nix, the project provides a formatting check:
+
+```bash
+nix flake check
+```
+
+This runs:
+
+- `clang-format` - C++ formatting
+- `deadnix` - Dead Nix code detection  
+- `nixfmt` - Nix file formatting
+- `statix` - Nix static analysis
+- `markdownlint` - Markdown linting
+
+## Code Organization
+
+### Header Files
+
+Use `#pragma once` for header guards:
+
+```cpp
+#pragma once
+
+#include <QString>
+
+class MyClass {
+    // ...
+};
+```
+
+### Brace Style
+
+Functions have opening braces on a new line:
+
+```cpp
+void myFunction()
+{
+    if (condition) {
+        // if/else/for/while have braces on the same line
+        doSomething();
+    }
+}
+```
+
+### Constructor Initialization
+
+Initializers break before the comma:
+
+```cpp
+MyClass::MyClass(int value, QString name)
+    : m_value(value)
+    , m_name(std::move(name))
+    , m_initialized(true)
+{
+    // Constructor body
+}
+```
+
+### Empty Functions and Records
+
+Don't split empty functions or records:
+
+```cpp
+// Good
+class Empty { };
+void emptyFunction() { }
+
+// Bad
+class Empty {
+};
+```
+
+## Qt-Specific Guidelines
+
+### Q_DISABLE_COPY
+
+For non-copyable classes:
+
+```cpp
+class NonCopyable {
+    Q_DISABLE_COPY(NonCopyable)
+   public:
+    NonCopyable() = default;
+};
+```
+
+### Signals and Slots
+
+```cpp
+class MyWidget : public QWidget {
+    Q_OBJECT
+
+   public:
+    explicit MyWidget(QWidget* parent = nullptr);
+
+   signals:
+    void dataChanged();
+    void errorOccurred(const QString& error);
+
+   private slots:
+    void onButtonClicked();
+    void handleTimeout();
+
+   private:
+    QPushButton* m_button;
+};
+```
+
+### Qt Deprecation Warnings
+
+The project disables Qt deprecation warnings for APIs up to Qt 6.4:
+
+```cpp
+// Set in CMakeLists.txt
+-DQT_WARN_DEPRECATED_UP_TO=0x060400
+-DQT_DISABLE_DEPRECATED_UP_TO=0x060400
+```
+
+## Compiler Flags
+
+### Security
+
+The build enables security features:
+
+```bash
+# All compilers
+-fstack-protector-strong
+--param=ssp-buffer-size=4
+
+# Release builds
+-D_FORTIFY_SOURCE=2
+
+# Windows
+-mguard=cf  # Control Flow Guard
+```
+
+### Optimization
+
+```bash
+# Release builds
+-O2
+-ffunction-sections
+-fdata-sections
+```
+
+## Pre-commit Checklist
+
+Before committing, ensure:
+
+<Steps>
+  <Step title="Format your code">
+    ```bash
+    clang-format -i $(git diff --name-only | grep -E '\.(cpp|h)$')
+    ```
+  </Step>
+
+  <Step title="Run clang-tidy">
+    ```bash
+    clang-tidy path/to/modified/file.cpp
+    ```
+  </Step>
+
+  <Step title="Build successfully">
+    ```bash
+    cd build && cmake --build .
+    ```
+  </Step>
+
+  <Step title="Run tests">
+    ```bash
+    cd build && ctest
+    ```
+  </Step>
+</Steps>
+
+## Further Reading
+
+- `.clang-format` - Formatting configuration
+- `.clang-tidy` - Static analysis rules
+- `CONTRIBUTING.md` - Full contribution guidelines
+- [Clang-Format Documentation](https://clang.llvm.org/docs/ClangFormat.html)
+- [Clang-Tidy Checks](https://clang.llvm.org/extra/clang-tidy/checks/list.html)

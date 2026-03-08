@@ -1,0 +1,321 @@
+---
+title: Environment Variables
+description: Configure custom environment variables for Minecraft instances and understand system-wide launcher variables
+---
+
+Environment variables allow you to customize the runtime environment for Minecraft instances and control launcher behavior.
+
+## Instance Environment Variables
+
+You can set custom environment variables that will be available to Minecraft and any mods during runtime.
+
+### Configuration
+
+#### Global Environment Variables
+
+Set variables that apply to all instances:
+
+1. Navigate to **Settings** → **Minecraft** → **Environment Variables**
+2. Add variable name-value pairs
+3. Click **OK** to save
+
+#### Per-Instance Environment Variables
+
+Override global variables for specific instances:
+
+1. Right-click an instance → **Edit Instance** → **Settings**
+2. Navigate to **Environment Variables**
+3. Check **Override Global Settings**
+4. Add or modify variables
+5. Click **OK** to save
+
+### Common Use Cases
+
+<CodeGroup>
+```bash Performance Tuning
+MALLOC_ARENA_MAX=4
+MALLOC_TRIM_THRESHOLD_=100000
+```
+
+```bash GPU Selection (Linux)
+DRI_PRIME=1
+__NV_PRIME_RENDER_OFFLOAD=1
+__GLX_VENDOR_LIBRARY_NAME=nvidia
+```
+
+```bash Debug Logging
+LWJGL_DEBUG=true
+DEBUG=1
+```
+
+```bash Custom Paths
+TMPDIR=/path/to/custom/tmp
+JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=/custom/tmp
+```
+</CodeGroup>
+
+## Launcher-Provided Variables
+
+These variables are automatically set by Prism Launcher and available to custom commands:
+
+<ParamField path="INST_NAME" type="string">
+  The display name of the instance
+</ParamField>
+
+<ParamField path="INST_ID" type="string">
+  The unique identifier of the instance (folder name)
+</ParamField>
+
+<ParamField path="INST_DIR" type="string">
+  Absolute path to the instance root directory
+</ParamField>
+
+<ParamField path="INST_MC_DIR" type="string">
+  Absolute path to the Minecraft game directory (usually `instance_dir/minecraft` or `instance_dir/.minecraft`)
+</ParamField>
+
+<ParamField path="INST_JAVA" type="string">
+  Path to the Java executable used for this instance
+</ParamField>
+
+<ParamField path="INST_JAVA_ARGS" type="string">
+  The JVM arguments used for launch
+  
+  <Warning>
+  May not parse correctly if arguments contain spaces
+  </Warning>
+</ParamField>
+
+## System-Wide Launcher Variables
+
+These environment variables affect the launcher itself and must be set before starting Prism Launcher.
+
+### Data Directory
+
+<ParamField path="PRISMLAUNCHER_DATA_DIR" type="string">
+  Override the default data directory location
+  
+  ```bash Linux/macOS
+  export PRISMLAUNCHER_DATA_DIR="/path/to/data"
+  prismlauncher
+  ```
+  
+  ```powershell Windows (PowerShell)
+  $env:PRISMLAUNCHER_DATA_DIR = "C:\custom\path"
+  .\prismlauncher.exe
+  ```
+  
+  <Note>
+  This is equivalent to using the `--dir` command-line argument. The command-line argument takes precedence if both are specified.
+  </Note>
+</ParamField>
+
+### Qt Logging
+
+<ParamField path="QT_LOGGING_RULES" type="string">
+  Control which Qt logging categories are shown in the launcher logs
+  
+  ```bash Enable specific categories
+  export QT_LOGGING_RULES="qt.network.ssl=true;qt.network=false"
+  ```
+  
+  Multiple categories can be separated by semicolons (`;`). See [Qt Logging Categories](https://doc.qt.io/qt-6/qloggingcategory.html#configuring-categories) for details.
+</ParamField>
+
+<ParamField path="QT_MESSAGE_PATTERN" type="string">
+  Customize the format of console output messages
+  
+  ```bash Custom format
+  export QT_MESSAGE_PATTERN="[%{time process}] %{if-category}[%{category}]%{endif} %{message}"
+  ```
+  
+  See [Qt Message Pattern](https://doc.qt.io/qt-6/qtglobal.html#qSetMessagePattern) for available placeholders.
+</ParamField>
+
+### Linux-Specific Variables
+
+<ParamField path="LD_PRELOAD" type="string">
+  Preload shared libraries before running Minecraft (Linux only)
+  
+  ```bash Example with custom library
+  export LD_PRELOAD="/path/to/library.so"
+  ```
+  
+  <Warning>
+  Prism Launcher may modify this variable when enabling MangoHud or other features. Your value may be appended to rather than replaced.
+  </Warning>
+</ParamField>
+
+<ParamField path="APPIMAGE" type="string">
+  Automatically set when running from AppImage. Points to the AppImage file path.
+  
+  <Note>
+  Used internally by the launcher for updates and creating shortcuts.
+  </Note>
+</ParamField>
+
+## Performance-Related Variables
+
+These environment variables can improve Minecraft performance:
+
+### Mesa Drivers (Linux)
+
+<CodeGroup>
+```bash Enable shader cache
+mesa_glthread=true
+mesa_shader_cache_dir=/path/to/cache
+```
+
+```bash Zink (OpenGL over Vulkan)
+__GLX_VENDOR_LIBRARY_NAME=mesa
+MESA_LOADER_DRIVER_OVERRIDE=zink
+GALLIUM_DRIVER=zink
+```
+</CodeGroup>
+
+<Note>
+Zink can be enabled directly in instance settings under **Performance** → **Use Zink**. When enabled via settings, these variables are set automatically.
+</Note>
+
+### Memory Management
+
+<CodeGroup>
+```bash Reduce memory fragmentation
+MALLOC_ARENA_MAX=4
+```
+
+```bash Custom temp directory
+TMPDIR=/mnt/ramdisk/tmp
+JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=/mnt/ramdisk/tmp
+```
+</CodeGroup>
+
+### GPU Selection
+
+<CodeGroup>
+```bash NVIDIA Prime
+__NV_PRIME_RENDER_OFFLOAD=1
+__VK_LAYER_NV_optimus=NVIDIA_only
+__GLX_VENDOR_LIBRARY_NAME=nvidia
+```
+
+```bash AMD/Intel DRI_PRIME
+DRI_PRIME=1
+```
+</CodeGroup>
+
+<Note>
+GPU selection can be enabled in instance settings under **Performance** → **Use Discrete GPU**. When enabled, these variables are configured automatically on Linux.
+</Note>
+
+## Graphics and Rendering
+
+### LWJGL Variables
+
+<CodeGroup>
+```bash Debug LWJGL
+LWJGL_DEBUG=true
+```
+
+```bash Disable XRandR (Linux)
+LWJGL_DISABLE_XRANDR=1
+```
+</CodeGroup>
+
+### Input Method (Linux)
+
+<CodeGroup>
+```bash IBus input support
+XMODIFIERS=@im=ibus
+GTK_IM_MODULE=ibus
+QT_IM_MODULE=ibus
+```
+</CodeGroup>
+
+## Java-Specific Variables
+
+<ParamField path="JAVA_HOME" type="string">
+  Override the Java installation path
+  
+  ```bash Linux/macOS
+  export JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
+  ```
+  
+  <Warning>
+  Prism Launcher typically manages Java installations automatically. Only use this if you have specific requirements.
+  </Warning>
+</ParamField>
+
+<ParamField path="JAVA_TOOL_OPTIONS" type="string">
+  Additional JVM options applied to all Java processes
+  
+  ```bash Example
+  export JAVA_TOOL_OPTIONS="-Xmx2G -Djava.io.tmpdir=/tmp/minecraft"
+  ```
+  
+  <Note>
+  These options are applied in addition to those configured in instance settings.
+  </Note>
+</ParamField>
+
+## Storage Format
+
+Environment variables are stored as JSON in the launcher configuration:
+
+```json settings.json
+{
+  "Env": "{\"VARIABLE_NAME\":\"value\",\"ANOTHER_VAR\":\"value2\"}"
+}
+```
+
+For per-instance settings, they're stored in `instance.cfg`:
+
+```ini instance.cfg
+OverrideEnv=true
+Env={"MY_VARIABLE":"my_value","DEBUG":"1"}
+```
+
+## Variable Precedence
+
+1. **System environment** - Variables set in your shell or system
+2. **Launcher-provided** - Variables like `INST_NAME`, `INST_DIR`
+3. **Global custom variables** - Set in launcher global settings
+4. **Instance custom variables** - Set in per-instance settings (highest priority)
+5. **Feature-specific** - Variables set by launcher features (MangoHud, Gamemode, etc.)
+
+## Troubleshooting
+
+### Variables Not Applied
+
+1. Restart the launcher after setting system-wide variables
+2. Verify variables are saved in settings (check `settings.json` or `instance.cfg`)
+3. Check for typos in variable names
+4. Ensure override is enabled for instance-specific variables
+
+### Syntax Errors
+
+<Warning>
+Variable names and values are case-sensitive. Use exact casing as documented.
+</Warning>
+
+### Conflicts
+
+If launcher features (like GPU switching) conflict with manual variables:
+1. Disable the launcher feature
+2. Set variables manually
+3. Or use the launcher feature and let it manage the variables
+
+## Security Considerations
+
+<Warning>
+- Avoid storing sensitive data in environment variables
+- Be cautious with `LD_PRELOAD` and similar injection mechanisms
+- Only use variables from trusted sources
+- Review modpack-provided environment variables before use
+</Warning>
+
+## Related Documentation
+
+- [Custom Commands](/advanced/custom-commands) - Use environment variables in pre/post-launch commands
+- [Command-Line Arguments](/advanced/command-line) - Control launcher behavior from command line
+- [Portable Mode](/advanced/portable-mode) - Portable data directory configuration

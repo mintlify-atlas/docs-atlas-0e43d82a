@@ -1,0 +1,230 @@
+---
+title: Frequently Asked Questions
+description: Common questions about Prism Launcher
+---
+
+Find answers to commonly asked questions about Prism Launcher. Can't find what you're looking for? Check our [support page](/community/support) for other ways to get help.
+
+## General Questions
+
+<Accordion title="What is Prism Launcher?">
+  Prism Launcher is a custom launcher for Minecraft that allows you to easily manage multiple installations of Minecraft at once. Each installation, called an "instance", can have its own mods, resource packs, settings, and even different Minecraft versions.
+  
+  Prism Launcher is a fork of the MultiMC Launcher and is not endorsed by MultiMC or Mojang Studios.
+</Accordion>
+
+<Accordion title="Is Prism Launcher free?">
+  Yes! Prism Launcher is completely free and open source software licensed under GPL-3.0-only. The logo and related assets are under the CC BY-SA 4.0 license.
+  
+  You can view the source code at [https://github.com/PrismLauncher/PrismLauncher](https://github.com/PrismLauncher/PrismLauncher).
+</Accordion>
+
+<Accordion title="Is Prism Launcher safe?">
+  Yes. Prism Launcher is open source, meaning anyone can review the code. We don't collect your personal data or include any malware. However, always download Prism Launcher from official sources:
+  
+  - Official website: [https://prismlauncher.org/download](https://prismlauncher.org/download)
+  - GitHub releases: [https://github.com/PrismLauncher/PrismLauncher](https://github.com/PrismLauncher/PrismLauncher)
+  - Official distribution repositories (Flathub, AUR, etc.)
+</Accordion>
+
+<Accordion title="How is Prism Launcher different from the official Minecraft launcher?">
+  Prism Launcher offers several advantages:
+  
+  - **Multiple instances** - Keep different mod setups completely separate
+  - **Better mod management** - Easy installation and organization of mods
+  - **Modpack support** - Import modpacks from CurseForge, Modrinth, and other platforms
+  - **Version isolation** - Each instance can use a different Minecraft version
+  - **More control** - Fine-tune Java settings, memory allocation, and more
+  - **Cross-platform** - Works on Linux, Windows, and macOS
+</Accordion>
+
+<Accordion title="Will I get banned for using Prism Launcher?">
+  No. Prism Launcher is simply an alternative launcher for Minecraft. It doesn't modify the game client or provide any unfair advantages. You still log in with your legitimate Microsoft/Mojang account and play the standard game.
+  
+  However, be careful with the mods you install - using cheat mods on multiplayer servers may result in server bans (but this isn't related to Prism Launcher itself).
+</Accordion>
+
+## Installation & Setup
+
+<Accordion title="Where can I download Prism Launcher?">
+  Download Prism Launcher from our official website: [https://prismlauncher.org/download](https://prismlauncher.org/download)
+  
+  We provide builds for:
+  - **Linux** - AppImage, Flatpak, and distribution packages
+  - **Windows** - Installer and portable versions
+  - **macOS** - DMG installer
+  
+  Development/nightly builds are available at [https://prismlauncher.org/nightly](https://prismlauncher.org/nightly), but these may be unstable.
+</Accordion>
+
+<Accordion title="What are the system requirements?">
+  Prism Launcher itself is lightweight, but Minecraft's requirements vary by version:
+  
+  **Minimum:**
+  - Modern operating system (Linux, Windows 10+, macOS 10.14+)
+  - 4GB RAM (8GB recommended)
+  - Java (can be downloaded through Prism Launcher on most platforms)
+  - Internet connection for initial setup
+  
+  **For modded Minecraft:**
+  - 6-8GB RAM minimum
+  - More powerful CPU and GPU recommended
+</Accordion>
+
+<Accordion title="Do I need to own Minecraft?">
+  Yes. Prism Launcher is a launcher for Minecraft, not a replacement for it. You need a legitimate Minecraft Java Edition account to play.
+  
+  When you first run Prism Launcher, you'll be prompted to log in with your Microsoft account (or legacy Mojang account if applicable).
+</Accordion>
+
+<Accordion title="How do I install Java?">
+  On most platforms (Windows and macOS), Prism Launcher includes a Java downloader feature that can automatically install the correct Java version for your Minecraft instances.
+  
+  On Linux, the Java downloader is disabled by default for compatibility reasons. You should install Java through your distribution's package manager:
+  
+  ```bash
+  # Debian/Ubuntu
+  sudo apt install openjdk-17-jre openjdk-21-jre
+  
+  # Fedora
+  sudo dnf install java-17-openjdk java-21-openjdk
+  
+  # Arch Linux
+  sudo pacman -S jre17-openjdk jre21-openjdk
+  ```
+</Accordion>
+
+## Using Prism Launcher
+
+<Accordion title="How do I install mods?">
+  1. Select your instance in Prism Launcher
+  2. Click "Edit" or "Edit Instance" 
+  3. Go to the "Mods" tab
+  4. Click "Download mods" to browse CurseForge or Modrinth
+  5. Or drag and drop mod files directly into the window
+  
+  Make sure you're installing mods compatible with your Minecraft version and mod loader (Forge, Fabric, Quilt, etc.).
+</Accordion>
+
+<Accordion title="How do I install modpacks?">
+  Prism Launcher supports multiple modpack formats:
+  
+  **From CurseForge or Modrinth:**
+  1. Click "Add Instance"
+  2. Select "CurseForge" or "Modrinth" tab
+  3. Search for the modpack
+  4. Click "OK" to download and install
+  
+  **From a downloaded file:**
+  1. Drag and drop the modpack file onto Prism Launcher
+  2. Or use File → Import from zip
+</Accordion>
+
+<Accordion title="How do I allocate more RAM to Minecraft?">
+  **For a specific instance:**
+  1. Right-click the instance
+  2. Edit → Settings
+  3. Check "Java memory" under "Memory"
+  4. Adjust the "Maximum memory allocation"
+  
+  **For all instances (globally):**
+  1. Settings → Java
+  2. Adjust "Maximum memory allocation"
+  
+  <Note>
+  Don't allocate more than 50-70% of your total system RAM. For most modpacks, 4-6GB is sufficient.
+  </Note>
+</Accordion>
+
+<Accordion title="Can I transfer my instances from MultiMC?">
+  Yes! Prism Launcher can import MultiMC instances:
+  
+  1. In Prism Launcher, go to File → Import from zip
+  2. Navigate to your MultiMC instances folder
+  3. Select the instance folder or export it from MultiMC first
+  
+  You can also point Prism Launcher to your existing MultiMC data directory in the settings, though running both launchers simultaneously is not recommended.
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="The game crashes on startup">
+  Common causes and solutions:
+  
+  1. **Incompatible mods** - Check that all mods are for the correct Minecraft version
+  2. **Not enough RAM** - Increase memory allocation in instance settings
+  3. **Wrong Java version** - Use Java 17 for Minecraft 1.18+, Java 8 for older versions
+  4. **Conflicting mods** - Check the crash log for mod conflicts
+  
+  The crash log is available in the instance console window or in the instance folder under `crash-reports/`.
+</Accordion>
+
+<Accordion title="Where are my Minecraft files stored?">
+  Click on an instance and select "Folder" or "Instance Folder" to open its directory. This contains:
+  
+  - `mods/` - Installed mods
+  - `resourcepacks/` - Resource packs
+  - `saves/` - Your worlds
+  - `screenshots/` - Screenshots
+  - `logs/` - Log files
+</Accordion>
+
+<Accordion title="How do I report a bug?">
+  1. Check if the issue already exists: [GitHub Issues](https://github.com/PrismLauncher/PrismLauncher/issues)
+  2. If not, create a new issue
+  3. Include:
+     - Your operating system
+     - Prism Launcher version
+     - Steps to reproduce
+     - Log files if applicable
+     - Screenshots if helpful
+</Accordion>
+
+<Accordion title="Can I use Prism Launcher with game controllers?">
+  Prism Launcher itself doesn't provide controller support, but you can use mods like:
+  
+  - **MidnightControls** (Fabric)
+  - **Controllable** (Forge)
+  
+  Install these mods in your instance to add controller support to Minecraft.
+</Accordion>
+
+## Development & Contributing
+
+<Accordion title="How can I contribute to Prism Launcher?">
+  There are many ways to contribute:
+  
+  - **Code contributions** - Check the [build instructions](https://prismlauncher.org/wiki/development/build-instructions)
+  - **Translations** - Help translate on [Weblate](https://hosted.weblate.org/projects/prismlauncher/launcher/)
+  - **Documentation** - Improve the wiki and help pages
+  - **Bug reports** - Report issues you encounter
+  - **Support** - Help others in the community spaces
+  
+  Read the [Contributing Guidelines](https://github.com/PrismLauncher/PrismLauncher/blob/develop/CONTRIBUTING.md) before submitting code.
+</Accordion>
+
+<Accordion title="Can I make a custom fork of Prism Launcher?">
+  Yes! Prism Launcher is free and open source under GPL-3.0-only. If you fork or redistribute:
+  
+  1. **Make it clear** your fork is not official Prism Launcher
+  2. **Change the API keys** in CMakeLists.txt or set them to empty strings
+  3. **Follow the license terms** (GPL-3.0-only)
+  
+  See the README section on "Forking/Redistributing/Custom builds policy" for full details.
+</Accordion>
+
+<Accordion title="Where can I find development builds?">
+  Development builds are available through:
+  
+  - [nightly.link](https://prismlauncher.org/nightly) - Latest develop branch build
+  - [GitHub Actions](https://github.com/PrismLauncher/PrismLauncher/actions) - All build artifacts including PRs
+  - [Flatpak nightly repository](https://flatpak.prismlauncher.org/prismlauncher-nightly.flatpakref) (Linux only)
+  
+  <Note>
+  Development builds are not intended for most users. They may contain bugs and instabilities. Use at your own risk!
+  </Note>
+</Accordion>
+
+## Still Have Questions?
+
+If your question isn't answered here, check out our [support page](/community/support) for ways to get help from the community.

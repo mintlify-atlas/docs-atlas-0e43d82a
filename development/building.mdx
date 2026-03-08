@@ -1,0 +1,456 @@
+---
+title: Building Prism Launcher
+description: Complete build instructions for all supported platforms
+---
+
+This guide covers building Prism Launcher from source on all supported platforms.
+
+## Build Requirements
+
+### System Requirements
+
+- **CMake**: 3.22 or higher (minimum version required by Qt)
+- **C++ Compiler**: Support for C++20 standard
+- **C Compiler**: Support for C11 standard
+- **Qt**: Version 6.4 or higher
+- **Git**: For cloning and submodule management
+
+### Required Dependencies
+
+<CodeGroup>
+```bash Ubuntu/Debian
+sudo apt install build-essential cmake git \
+  qt6-base-dev qt6-base-dev-tools \
+  libqt6core5compat6-dev qt6-network-auth-dev \
+  libgl1-mesa-dev zlib1g-dev libarchive-dev \
+  libqrencode-dev libtomlplusplus-dev libcmark-dev
+```
+
+```bash Fedora
+sudo dnf install gcc-c++ cmake git \
+  qt6-qtbase-devel qt6-qtnetworkauth-devel \
+  mesa-libGL-devel zlib-devel libarchive-devel \
+  qrencode-devel tomlplusplus-devel cmark-devel
+```
+
+```bash Arch Linux
+sudo pacman -S base-devel cmake git \
+  qt6-base qt6-5compat qt6-networkauth \
+  zlib libarchive qrencode tomlplusplus cmark
+```
+
+```bash macOS
+brew install cmake qt@6 libarchive qrencode \
+  tomlplusplus cmark zlib
+```
+</CodeGroup>
+
+<Note>
+  On Linux, the project requires `libgamemode` for GameMode support and `libqrencode` for QR code functionality.
+</Note>
+
+## Build Configuration
+
+### CMake Build Types
+
+The project supports standard CMake build types:
+
+- **Debug**: Debug information included, no optimizations, Address Sanitizer optional
+- **Release**: Full optimizations (`-O2 -D_FORTIFY_SOURCE=2`)
+- **RelWithDebInfo**: Optimizations with debug information
+- **MinSizeRel**: Size-optimized release build
+
+### Important CMake Options
+
+```cmake
+# Qt version (default: 6)
+-DLauncher_QT_VERSION_MAJOR=6
+
+# Build platform identifier
+-DLauncher_BUILD_PLATFORM="archlinux"
+
+# Enable tests
+-DBUILD_TESTING=ON
+
+# Enable Link Time Optimization
+-DENABLE_LTO=ON
+
+# Enable Address Sanitizer for Debug builds
+-DDEBUG_ADDRESS_SANITIZER=ON
+
+# Precompiled headers (default: ON)
+-DLauncher_USE_PCH=ON
+
+# Java downloader feature (auto-disabled on Linux/BSD)
+-DLauncher_ENABLE_JAVA_DOWNLOADER=ON
+```
+
+<Warning>
+  In-source builds are not allowed. CMake will fail if `CMAKE_SOURCE_DIR` equals `CMAKE_BUILD_DIR`.
+</Warning>
+
+## Platform-Specific Instructions
+
+<Tabs>
+  <Tab title="Linux">
+    ### Standard Build
+
+    <Steps>
+      <Step title="Clone and Initialize">
+        ```bash
+        git clone https://github.com/PrismLauncher/PrismLauncher.git
+        cd PrismLauncher
+        git submodule update --init --force
+        ```
+      </Step>
+
+      <Step title="Configure Build">
+        ```bash
+        mkdir build && cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX="/usr" \
+          -DLauncher_BUILD_PLATFORM="$(lsb_release -si | tr '[:upper:]' '[:lower:]')"
+        ```
+      </Step>
+
+      <Step title="Build">
+        ```bash
+        cmake --build . -j$(nproc)
+        ```
+      </Step>
+
+      <Step title="Install (Optional)">
+        ```bash
+        sudo cmake --install .
+        ```
+      </Step>
+    </Steps>
+
+    ### Portable Installation
+
+    For a portable installation that doesn't require system-wide installation:
+
+    ```bash
+    cmake --install . --prefix ./install --component portable
+    ```
+
+    This creates a launcher script and `portable.txt` file in the installation directory.
+
+    ### Runtime Path (RPATH)
+
+    On Linux, the binary RPATH is set to `$ORIGIN/` to load libraries from the same directory.
+  </Tab>
+
+  <Tab title="macOS">
+    ### Requirements
+
+    - Xcode Command Line Tools: `xcode-select --install`
+    - Homebrew for dependencies
+    - For liquid glass icons: Xcode 26.0 or higher
+
+    <Steps>
+      <Step title="Install Dependencies">
+        ```bash
+        brew install cmake qt@6 ninja libarchive qrencode tomlplusplus cmark
+        ```
+      </Step>
+
+      <Step title="Clone and Configure">
+        ```bash
+        git clone https://github.com/PrismLauncher/PrismLauncher.git
+        cd PrismLauncher
+        git submodule update --init --force
+        mkdir build && cd build
+        cmake .. -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        ```
+      </Step>
+
+      <Step title="Build Application Bundle">
+        ```bash
+        ninja
+        ```
+
+        This creates `Prism Launcher.app` in the build directory.
+      </Step>
+    </Steps>
+
+    ### macOS Bundle Structure
+
+    The app bundle is organized as follows:
+
+    ```
+    Prism Launcher.app/
+    ├── Contents/
+    │   ├── MacOS/          # Binaries and jars
+    │   ├── Frameworks/     # Sparkle update framework
+    │   └── Resources/      # Icons and assets
+    ```
+
+    ### Sparkle Updates
+
+    The macOS version uses Sparkle for auto-updates:
+
+    - **Update Feed**: `https://prismlauncher.org/feed/appcast.xml`
+    - **Sparkle Version**: 2.8.0
+    - **Public Key**: `v55ZWWD6QlPoXGV6VLzOTZxZUggWeE51X8cRQyQh6vA=`
+
+    <Note>
+      The updater is only enabled if both `MACOSX_SPARKLE_UPDATE_PUBLIC_KEY` and `MACOSX_SPARKLE_UPDATE_FEED_URL` are set.
+    </Note>
+  </Tab>
+
+  <Tab title="Windows">
+    ### Requirements
+
+    - Visual Studio 2019 or later, OR
+    - MinGW-w64 with GCC
+    - Qt 6.4+ (from official installer or vcpkg)
+    - CMake 3.22+
+
+    <Steps>
+      <Step title="Install Dependencies">
+        Using vcpkg:
+
+        ```powershell
+        vcpkg install qt6 libarchive qrencode tomlplusplus cmark zlib
+        ```
+      </Step>
+
+      <Step title="Clone Repository">
+        ```powershell
+        git clone https://github.com/PrismLauncher/PrismLauncher.git
+        cd PrismLauncher
+        git submodule update --init --force
+        ```
+      </Step>
+
+      <Step title="Configure with MSVC">
+        ```powershell
+        mkdir build
+        cd build
+        cmake .. -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_TOOLCHAIN_FILE="C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        ```
+      </Step>
+
+      <Step title="Build">
+        ```powershell
+        cmake --build . --config Release
+        ```
+      </Step>
+    </Steps>
+
+    ### MSVC-Specific Flags
+
+    The build automatically applies these compiler/linker flags on MSVC:
+
+    - `/GS` - Buffer security checks
+    - `/EHsc` - Exception handling with proper stack unwinding
+    - `/LTCG` - Link-time code generation
+    - `/MANIFEST:NO` - Use custom manifest
+    - `/STACK:8388608` - 8 MiB stack size (needed for ATL's pack list)
+    - `/GL /Gw /Gy` - Whole program optimization (Release)
+    - `/guard:cf` - Control Flow Guard (Release)
+
+    ### Stack Size
+
+    Both MSVC and MinGW builds set an 8 MiB stack size. ATL's pack list processing requires more than the default 1 MiB.
+  </Tab>
+
+  <Tab title="Nix">
+    ### Using Nix Flakes
+
+    The project provides a complete Nix flake with development environments and packages.
+
+    #### Development Shell
+
+    ```bash
+    nix develop
+    ```
+
+    This automatically:
+
+    - Installs all dependencies
+    - Updates git submodules
+    - Configures CMake with Ninja
+    - Sets up `compile_commands.json` for LSP
+
+    #### Building
+
+    Inside the development shell:
+
+    ```bash
+    cd "$cmakeBuildDir"
+    ninjaBuildPhase
+    ninjaInstallPhase
+    ```
+
+    #### Package Build
+
+    ```bash
+    nix build
+    ```
+
+    #### Available Packages
+
+    - `packages.prismlauncher` - Wrapped executable (default)
+    - `packages.prismlauncher-unwrapped` - Unwrapped executable
+    - `legacyPackages.prismlauncher-debug` - Debug build with symbols
+
+    #### Cachix Binary Cache
+
+    Speed up builds by using the project's binary cache:
+
+    ```bash
+    cachix use prismlauncher
+    ```
+
+    Or add to your Nix configuration:
+
+    ```nix
+    nix.settings = {
+      extra-substituters = [ "https://prismlauncher.cachix.org" ];
+      extra-trusted-public-keys = [
+        "prismlauncher.cachix.org-1:9/n/FGyABA2jLUVfY+DEp4hKds/rwO+SCOtbOkDzd+c="
+      ];
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Build Options
+
+### Link Time Optimization (LTO)
+
+Enable LTO for smaller, faster binaries:
+
+```bash
+cmake .. -DENABLE_LTO=ON
+```
+
+LTO is automatically enabled for Release and MinSizeRel builds if the compiler supports it.
+
+### Address Sanitizer
+
+Enable Address Sanitizer for debugging memory issues:
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DDEBUG_ADDRESS_SANITIZER=ON
+```
+
+This enables both AddressSanitizer and UndefinedBehaviorSanitizer in Debug builds.
+
+### Custom API Keys
+
+<Warning>
+  If you're creating a fork or custom build, you **must** either remove or replace the API keys in `CMakeLists.txt`.
+</Warning>
+
+API keys in the project:
+
+```cmake
+# Microsoft Identity Platform (for Xbox/Microsoft accounts)
+set(Launcher_MSA_CLIENT_ID "...")
+
+# CurseForge API (for mod downloads)
+set(Launcher_CURSEFORGE_API_KEY "...")
+
+# Imgur (for screenshot uploads)
+set(Launcher_IMGUR_CLIENT_ID "...")
+```
+
+To disable features:
+
+```cmake
+set(Launcher_MSA_CLIENT_ID "")
+set(Launcher_CURSEFORGE_API_KEY "")
+set(Launcher_IMGUR_CLIENT_ID "")
+```
+
+<Note>
+  By using the provided API keys, you accept the [Microsoft Identity Platform Terms](https://docs.microsoft.com/en-us/legal/microsoft-identity-platform/terms-of-use) and [CurseForge API Terms](https://support.curseforge.com/en/support/solutions/articles/9000207405).
+</Note>
+
+## Testing
+
+Run the test suite:
+
+```bash
+cd build
+ctest
+```
+
+Or with verbose output:
+
+```bash
+ctest --output-on-failure
+```
+
+Disable tests during configuration:
+
+```bash
+cmake .. -DBUILD_TESTING=OFF
+```
+
+## Compiler Compatibility
+
+The build system is tested with:
+
+- **GCC**: 10 or later
+- **Clang**: 12 or later  
+- **MSVC**: Visual Studio 2019 or later
+- **AppleClang**: Xcode 13 or later
+
+## Troubleshooting
+
+### Qt Not Found
+
+If CMake can't find Qt, specify the Qt installation path:
+
+```bash
+cmake .. -DCMAKE_PREFIX_PATH="/path/to/Qt/6.x/gcc_64"
+```
+
+### Submodule Issues
+
+If you encounter submodule-related errors:
+
+```bash
+git submodule sync
+git submodule update --init --force --recursive
+```
+
+### Stack Size Errors on Windows
+
+The build sets an 8 MiB stack size automatically. If you still encounter stack overflow:
+
+```bash
+# Check that the stack size is properly set
+link /DUMP /HEADERS prismlauncher.exe | findstr /C:"stack"
+```
+
+### macOS Icon Compilation
+
+If asset compilation fails, ensure you have:
+
+- Xcode 26.0+ installed
+- Command line tools: `xcode-select --install`
+- `actool` in your PATH
+
+## Distribution Packaging
+
+<Note>
+  If you're packaging Prism Launcher for a distribution, set `Launcher_BUILD_PLATFORM` to identify your distribution (e.g., `archlinux`, `fedora`, `nixpkgs`).
+</Note>
+
+Example for Arch Linux:
+
+```bash
+cmake .. -DLauncher_BUILD_PLATFORM="archlinux"
+```
+
+This information is displayed in the About dialog.

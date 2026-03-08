@@ -1,0 +1,229 @@
+---
+title: Custom Commands
+description: Configure custom pre-launch, wrapper, and post-exit commands for advanced instance control
+---
+
+Prism Launcher allows you to execute custom commands at different stages of instance launch and exit. These commands provide powerful automation and customization capabilities.
+
+## Command Types
+
+There are three types of custom commands available:
+
+### Pre-Launch Command
+
+Runs **before** the Minecraft instance starts. Useful for:
+- Setting up required services or configurations
+- Copying files or resources
+- Running initialization scripts
+- Validating system requirements
+
+### Wrapper Command
+
+Wraps the entire Minecraft launch process. The wrapper command receives the Minecraft command as arguments. Common uses:
+- Performance tools (e.g., `gamemoderun`, `mangohud`)
+- GPU switching utilities (e.g., `optirun`, `primusrun`)
+- Debugging tools (e.g., `gdb`, `strace`)
+- Custom launchers or environment managers
+
+### Post-Exit Command
+
+Runs **after** the Minecraft instance exits. Ideal for:
+- Cleanup operations
+- Backing up world saves
+- Resetting system configurations
+- Logging session information
+
+## Available Environment Variables
+
+All custom commands are executed with special environment variables that provide context about the instance:
+
+<ParamField path="$INST_NAME" type="string">
+  The display name of the instance
+</ParamField>
+
+<ParamField path="$INST_ID" type="string">
+  The unique ID of the instance (typically the folder name)
+</ParamField>
+
+<ParamField path="$INST_DIR" type="string">
+  Absolute path to the instance root directory
+</ParamField>
+
+<ParamField path="$INST_MC_DIR" type="string">
+  Absolute path to the Minecraft game directory
+</ParamField>
+
+<ParamField path="$INST_JAVA" type="string">
+  Path to the Java binary used for launch
+</ParamField>
+
+<ParamField path="$INST_JAVA_ARGS" type="string">
+  Command-line parameters used for launch
+  
+  <Warning>
+  This variable will not work correctly if arguments contain spaces. Use with caution.
+  </Warning>
+</ParamField>
+
+## Configuration
+
+Custom commands can be configured at two levels:
+
+### Global Settings
+
+Applies to all instances by default:
+1. Navigate to **Settings** → **Minecraft** → **Custom Commands**
+2. Enter your commands in the respective fields
+
+### Per-Instance Settings
+
+Override global settings for specific instances:
+1. Right-click an instance → **Edit Instance** → **Settings**
+2. Navigate to **Custom Commands**
+3. Check **Override Global Settings**
+4. Enter instance-specific commands
+
+## Examples
+
+### Pre-Launch Command Examples
+
+<CodeGroup>
+```bash Linux: Update mod pack
+#!/bin/bash
+"$INST_JAVA" -jar packwiz-installer-bootstrap.jar "$INST_MC_DIR/pack.toml"
+```
+
+```bash Linux: Backup saves before launch
+#!/bin/bash
+rsync -av "$INST_MC_DIR/saves/" "$HOME/minecraft-backups/$INST_ID/$(date +%Y%m%d-%H%M%S)/"
+```
+
+```bash Windows: Check disk space
+cmd /c "wmic logicaldisk get size,freespace,caption"
+```
+</CodeGroup>
+
+### Wrapper Command Examples
+
+<CodeGroup>
+```bash Linux: Use gamemode for performance
+gamemoderun
+```
+
+```bash Linux: GPU switching with prime-run
+prime-run
+```
+
+```bash Linux: Multiple wrappers (MangoHud + GameMode)
+mangohud gamemoderun
+```
+
+```bash Linux: Custom resource limits
+nice -n -10 ionice -c 1 -n 0
+```
+</CodeGroup>
+
+### Post-Exit Command Examples
+
+<CodeGroup>
+```bash Linux: Backup world on exit
+#!/bin/bash
+cp -r "$INST_MC_DIR/saves" "$HOME/backups/$INST_ID-$(date +%Y%m%d)"
+```
+
+```bash Linux: Log playtime
+#!/bin/bash
+echo "$(date): Finished playing $INST_NAME" >> "$HOME/minecraft-log.txt"
+```
+
+```bash Windows: Upload logs
+powershell -Command "Compress-Archive -Path '%INST_MC_DIR%\logs' -DestinationPath 'C:\logs\%INST_ID%.zip'"
+```
+</CodeGroup>
+
+## Advanced Usage
+
+### Using Scripts
+
+For complex operations, use a script file:
+
+<CodeGroup>
+```bash Pre-Launch Script
+#!/bin/bash
+# Save as: pre-launch.sh
+
+INSTANCE_DIR="$INST_MC_DIR"
+MOD_DIR="$INSTANCE_DIR/mods"
+
+# Update mods from packwiz
+if [ -f "$INSTANCE_DIR/pack.toml" ]; then
+    "$INST_JAVA" -jar packwiz-installer-bootstrap.jar "$INSTANCE_DIR/pack.toml"
+fi
+
+# Check for shader updates
+if [ -d "$INSTANCE_DIR/shaderpacks" ]; then
+    echo "Shader packs directory found"
+fi
+```
+
+```bash Reference script in launcher
+/path/to/pre-launch.sh
+```
+</CodeGroup>
+
+### Conditional Execution
+
+<CodeGroup>
+```bash Check if file exists before running
+#!/bin/bash
+if [ -f "$INST_MC_DIR/packwiz.jar" ]; then
+    "$INST_JAVA" -jar "$INST_MC_DIR/packwiz.jar" refresh
+fi
+```
+
+```bash Windows: Conditional execution
+if exist "%INST_MC_DIR%\config\mymod.cfg" (
+    echo Configuration found
+)
+```
+</CodeGroup>
+
+## Working Directory
+
+<Note>
+All custom commands are executed in the launcher's working directory, not the instance directory. Use the environment variables (e.g., `$INST_DIR`, `$INST_MC_DIR`) to reference instance-specific paths.
+</Note>
+
+## Troubleshooting
+
+### Command Not Executing
+
+1. **Check permissions**: Ensure scripts have execute permissions (`chmod +x script.sh` on Linux)
+2. **Use absolute paths**: Always use full paths to executables and scripts
+3. **Test independently**: Run the command manually to verify it works
+4. **Check logs**: Review the launcher console for error messages
+
+### Arguments With Spaces
+
+<Warning>
+The `$INST_JAVA_ARGS` variable does not handle arguments containing spaces correctly. For complex argument processing, parse them manually in your script.
+</Warning>
+
+### Script Encoding Issues
+
+On Windows, ensure batch files use CRLF line endings. On Linux/macOS, use LF line endings.
+
+## Security Considerations
+
+<Warning>
+- Be cautious when downloading and running commands from untrusted sources
+- Review scripts before execution to prevent malicious code
+- Avoid storing sensitive information in command strings
+- Use proper quoting to prevent command injection
+</Warning>
+
+## Related Documentation
+
+- [Environment Variables](/advanced/environment-variables) - Configure custom environment variables
+- [Command-Line Arguments](/advanced/command-line) - Launch instances from the command line
+- [Portable Mode](/advanced/portable-mode) - Run Prism Launcher in portable mode

@@ -1,0 +1,453 @@
+---
+title: Command-Line Arguments
+description: Control Prism Launcher behavior and launch instances directly from the command line
+---
+
+Prism Launcher provides extensive command-line interface (CLI) support for automation, scripting, and advanced workflows.
+
+## Synopsis
+
+```bash
+prismlauncher [OPTIONS] [URL...]
+```
+
+## Basic Options
+
+### Help and Version
+
+<ParamField path="--help" type="flag" default="false">
+  Display help text and exit
+  
+  ```bash
+  prismlauncher --help
+  ```
+</ParamField>
+
+<ParamField path="--version" type="flag" default="false">
+  Display program version and exit
+  
+  ```bash
+  prismlauncher --version
+  ```
+  
+  Shows the launcher version, Git commit hash, and build information.
+</ParamField>
+
+### Data Directory
+
+<ParamField path="--dir" type="string">
+  <ParamField path="-d" type="string">
+    Use a custom directory as the application root
+    
+    ```bash Linux/macOS
+    prismlauncher --dir /path/to/data
+    ```
+    
+    ```powershell Windows
+    prismlauncher.exe --dir "C:\PrismData"
+    ```
+    
+    Special value:
+    ```bash Use current directory
+    prismlauncher --dir .
+    ```
+    
+    <Note>
+    This overrides the `PRISMLAUNCHER_DATA_DIR` environment variable and the default data directory location.
+    </Note>
+  </ParamField>
+</ParamField>
+
+## Instance Management
+
+### Launching Instances
+
+<ParamField path="--launch" type="string">
+  <ParamField path="-l" type="string">
+    Launch the specified instance by its ID
+    
+    ```bash
+    prismlauncher --launch "MyInstance"
+    ```
+    
+    The instance ID is typically the folder name in your instances directory.
+    
+    <Note>
+    The launcher window will open and the instance will start automatically. Use with `--server` or `--world` to join specific servers or worlds.
+    </Note>
+  </ParamField>
+</ParamField>
+
+<ParamField path="--show" type="string">
+  Open the window for the specified instance without launching it
+  
+  ```bash
+  prismlauncher --show "MyInstance"
+  ```
+  
+  This opens the instance window, allowing you to configure settings before launch.
+</ParamField>
+
+### Launch Modifiers
+
+These options modify how instances are launched and must be used in combination with `--launch`.
+
+<ParamField path="--server" type="string">
+  <ParamField path="-s" type="string">
+    Join the specified server on launch
+    
+    ```bash
+    prismlauncher --launch "MyInstance" --server "mc.hypixel.net"
+    ```
+    
+    For servers with custom ports:
+    ```bash
+    prismlauncher --launch "MyInstance" --server "example.com:25565"
+    ```
+    
+    <Warning>
+    Only valid in combination with `--launch`. Using without `--launch` will result in an error.
+    </Warning>
+  </ParamField>
+</ParamField>
+
+<ParamField path="--world" type="string">
+  <ParamField path="-w" type="string">
+    Join the specified world on launch (singleplayer)
+    
+    ```bash
+    prismlauncher --launch "MyInstance" --world "My Survival World"
+    ```
+    
+    The world name must match exactly as it appears in the saves folder.
+    
+    <Note>
+    Requires Minecraft 1.20+ with quick play support. Only valid with `--launch`.
+    </Note>
+  </ParamField>
+</ParamField>
+
+### Account Selection
+
+<ParamField path="--profile" type="string">
+  <ParamField path="-a" type="string">
+    Use the account specified by its profile name
+    
+    ```bash
+    prismlauncher --launch "MyInstance" --profile "PlayerName"
+    ```
+    
+    The profile name is shown in the Accounts page of the launcher.
+    
+    <Warning>
+    Only valid in combination with `--launch`.
+    </Warning>
+  </ParamField>
+</ParamField>
+
+<ParamField path="--offline" type="string">
+  <ParamField path="-o" type="string">
+    Launch in offline mode with the specified player name
+    
+    ```bash
+    prismlauncher --launch "MyInstance" --offline "Steve"
+    ```
+    
+    <Note>
+    This bypasses authentication and launches without a valid account. Only valid with `--launch`.
+    </Note>
+  </ParamField>
+</ParamField>
+
+## Resource Import
+
+<ParamField path="--import" type="string">
+  <ParamField path="-I" type="string">
+    Import instance or resource from specified local path or URL
+    
+    ```bash Local file
+    prismlauncher --import "/path/to/modpack.zip"
+    ```
+    
+    ```bash URL
+    prismlauncher --import "https://example.com/modpack.mrpack"
+    ```
+    
+    ```bash Multiple imports
+    prismlauncher --import "pack1.zip" --import "pack2.mrpack"
+    ```
+    
+    Supported formats:
+    - `.mrpack` - Modrinth modpacks
+    - `.zip` - CurseForge, ATLauncher, Technic modpacks
+    - Modrinth URLs
+    - CurseForge URLs
+  </ParamField>
+</ParamField>
+
+### Positional URL Arguments
+
+You can also specify URLs as positional arguments (equivalent to `--import`):
+
+```bash
+prismlauncher "https://modrinth.com/modpack/example"
+```
+
+```bash Multiple URLs
+prismlauncher "url1" "url2" "url3"
+```
+
+## Utility Options
+
+<ParamField path="--alive" type="flag" default="false">
+  Write a small `live.check` file after the launcher starts
+  
+  ```bash
+  prismlauncher --alive
+  ```
+  
+  This creates a file that can be used by external scripts to verify the launcher started successfully.
+  
+  The file location is in the data directory and contains the application ID.
+</ParamField>
+
+## Complete Examples
+
+### Basic Launch Scenarios
+
+<CodeGroup>
+```bash Launch specific instance
+prismlauncher --launch "FTB Infinity Evolved"
+```
+
+```bash Launch and join server
+prismlauncher --launch "Vanilla 1.20" --server "play.example.com"
+```
+
+```bash Launch with specific account
+prismlauncher --launch "Modded Instance" --profile "MyMainAccount"
+```
+
+```bash Launch offline
+prismlauncher --launch "TestInstance" --offline "TestPlayer"
+```
+</CodeGroup>
+
+### Advanced Workflows
+
+<CodeGroup>
+```bash Custom data directory and launch
+prismlauncher --dir "/mnt/games/minecraft" --launch "Survival"
+```
+
+```bash Import and setup
+prismlauncher --import "https://modrinth.com/modpack/fabulously-optimized" --dir .
+```
+
+```bash Server join with custom data location
+prismlauncher -d "./portable" -l "MyInstance" -s "mc.example.net:25565"
+```
+</CodeGroup>
+
+### Automation Scripts
+
+<CodeGroup>
+```bash Linux: Launch script with logging
+#!/bin/bash
+LOG_FILE="$HOME/minecraft-launch.log"
+echo "[$(date)] Launching instance" >> "$LOG_FILE"
+prismlauncher --launch "MyInstance" >> "$LOG_FILE" 2>&1
+```
+
+```bash Linux: Portable launcher
+#!/bin/bash
+# Run from USB drive or portable location
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+prismlauncher --dir "$SCRIPT_DIR/data"
+```
+
+```powershell Windows: Scheduled launch
+# Save as launch-server.ps1
+$instanceName = "MultiplayerInstance"
+$serverAddress = "play.example.com"
+Start-Process "prismlauncher.exe" -ArgumentList "--launch","$instanceName","--server","$serverAddress"
+```
+</CodeGroup>
+
+### Desktop Shortcuts
+
+Create desktop shortcuts for quick instance launching:
+
+<CodeGroup>
+```bash Linux .desktop file
+[Desktop Entry]
+Type=Application
+Name=Launch Minecraft Server
+Exec=prismlauncher --launch "ServerInstance" --server "mc.example.com"
+Icon=prismlauncher
+Terminal=false
+Categories=Game;
+```
+
+```bash macOS: Create app bundle script
+#!/bin/bash
+# Save as launch-instance.command
+open -a "Prism Launcher" --args --launch "MyInstance"
+```
+
+```batch Windows shortcut target
+"C:\Program Files\PrismLauncher\prismlauncher.exe" --launch "MyInstance" --server "play.example.com"
+```
+</CodeGroup>
+
+## Error Handling
+
+### Exit Codes
+
+<ParamField path="0" type="exit code">
+  Success - Launcher started or command completed successfully
+</ParamField>
+
+<ParamField path="1" type="exit code">
+  Failure - Syntax error, configuration error, or unexpected error
+  
+  Common causes:
+  - Invalid command-line arguments
+  - Instance not found
+  - Data directory inaccessible
+  - Missing required options (e.g., `--server` without `--launch`)
+</ParamField>
+
+### Common Errors
+
+<CodeGroup>
+```bash Error: Options require --launch
+--server, --profile and --offline can only be used in combination with --launch!
+```
+
+```bash Fix
+prismlauncher --launch "MyInstance" --server "example.com"
+```
+</CodeGroup>
+
+## Instance Communication
+
+When a Prism Launcher instance is already running:
+
+1. New commands are **forwarded** to the existing instance
+2. The new process exits after forwarding the command
+3. The existing launcher window handles the request
+
+This allows:
+- Launching multiple instances from scripts
+- Importing resources while launcher is open
+- Remote control via command-line
+
+```bash Example: Import while launcher is running
+# Launcher is already open
+prismlauncher --import "newmodpack.mrpack"
+# Command is forwarded, import dialog appears in existing window
+```
+
+## Platform-Specific Notes
+
+### Linux AppImage
+
+When running from AppImage:
+
+```bash
+./PrismLauncher.AppImage --launch "MyInstance"
+```
+
+The `$APPIMAGE` environment variable is automatically set and used for updates.
+
+### Windows Portable
+
+For portable installations:
+
+```batch
+prismlauncher.exe --dir "."
+```
+
+Or create a `portable.txt` file in the launcher directory.
+
+### macOS Bundle
+
+Access the binary inside the app bundle:
+
+```bash
+/Applications/Prism\ Launcher.app/Contents/MacOS/prismlauncher --launch "Instance"
+```
+
+Or use `open`:
+
+```bash
+open -a "Prism Launcher" --args --launch "MyInstance"
+```
+
+## Integration Examples
+
+### Game Server Management
+
+```bash Launch on server start
+#!/bin/bash
+# server-start.sh
+prismlauncher --launch "AdminClient" --server "localhost:25565" &
+./start-minecraft-server.sh
+```
+
+### Mod Testing Workflow
+
+```bash
+#!/bin/bash
+# test-mod.sh
+MOD_FILE="$1"
+TEST_INSTANCE="ModTesting"
+
+# Copy mod to instance
+cp "$MOD_FILE" "$HOME/.local/share/PrismLauncher/instances/$TEST_INSTANCE/minecraft/mods/"
+
+# Launch instance
+prismlauncher --launch "$TEST_INSTANCE"
+```
+
+### Automated Modpack Updates
+
+```bash
+#!/bin/bash
+# update-modpacks.sh
+for pack in pack1.mrpack pack2.mrpack pack3.mrpack; do
+    echo "Importing $pack..."
+    prismlauncher --import "$pack"
+    sleep 2
+done
+```
+
+## Debugging
+
+Enable verbose logging:
+
+```bash Linux/macOS
+export QT_LOGGING_RULES="*.debug=true"
+prismlauncher --launch "MyInstance"
+```
+
+```powershell Windows
+$env:QT_LOGGING_RULES="*.debug=true"
+prismlauncher.exe --launch "MyInstance"
+```
+
+## Limitations
+
+<Warning>
+- Interactive operations (like account login) cannot be automated via CLI
+- Instance names with spaces must be quoted
+- Some operations require the GUI (e.g., initial setup wizard)
+- World names must match exactly (case-sensitive)
+</Warning>
+
+## Related Documentation
+
+- [Custom Commands](/advanced/custom-commands) - Automate tasks with pre/post-launch commands
+- [Environment Variables](/advanced/environment-variables) - Control launcher with environment variables
+- [Portable Mode](/advanced/portable-mode) - Use `--dir` for portable installations

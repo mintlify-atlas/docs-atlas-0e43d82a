@@ -1,0 +1,455 @@
+---
+title: Installing and Managing Mods
+description: Complete guide to installing, configuring, and managing Minecraft mods in Prism Launcher
+---
+
+Prism Launcher provides comprehensive mod management through the `ModFolderModel` system, which handles mod loading, dependency resolution, and compatibility checking.
+
+## Understanding Mod Structure
+
+Mods in Prism Launcher are managed as `Resource` objects with rich metadata:
+
+- **Mod Details**: Name, version, description, authors
+- **Compatibility**: Minecraft versions, mod loaders (Forge, Fabric, Quilt)
+- **Dependencies**: Required and conflicting mods
+- **Metadata**: Provider info (CurseForge, Modrinth), release type, file size
+- **Icons**: Mod logos and branding
+
+<Note>
+Prism Launcher automatically parses mod metadata from `fabric.mod.json`, `mods.toml`, and other mod manifest files.
+</Note>
+
+## Installing Mods
+
+<Tabs>
+  <Tab title="From Mod Browser">
+    <Steps>
+      <Step title="Open Mod Browser">
+        Right-click your instance and select "Edit Instance" → "Mods" → "Download Mods".
+      </Step>
+      
+      <Step title="Search for Mods">
+        Browse or search for mods from:
+        - **CurseForge**: Large collection of mods
+        - **Modrinth**: Modern, community-focused platform
+        
+        Filter by:
+        - Minecraft version compatibility
+        - Mod loader (Forge, Fabric, Quilt)
+        - Categories and tags
+      </Step>
+      
+      <Step title="Install Selected Mods">
+        Select mods and click Install. Prism Launcher will:
+        - Download the mod file
+        - Install to the `mods/` directory
+        - Parse mod metadata
+        - Check for dependency requirements
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Manual Installation">
+    <Steps>
+      <Step title="Download Mod File">
+        Obtain the mod `.jar` file from the mod's official source.
+      </Step>
+      
+      <Step title="Open Mods Folder">
+        Right-click instance → "Edit Instance" → "Mods" → "View Folder" or use:
+        
+        ```
+        modsRoot() returns the mods directory path
+        ```
+      </Step>
+      
+      <Step title="Copy Mod File">
+        Place the `.jar` file in the mods folder. Prism Launcher will:
+        - Detect the new file via `QFileSystemWatcher`
+        - Automatically parse mod metadata
+        - Update the mod list in the UI
+      </Step>
+    </Steps>
+    
+    <Warning>
+    Ensure downloaded mods match your Minecraft version and mod loader type. Incompatible mods may cause crashes.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Drag and Drop">
+    Simply drag `.jar` files onto the Prism Launcher window:
+    
+    1. Files are validated as valid mod files
+    2. Automatically installed to the correct instance
+    3. Metadata parsed and displayed immediately
+    
+    The `ResourceFolderModel::dropMimeData()` handles the installation process.
+  </Tab>
+</Tabs>
+
+## Mod Folder Structure
+
+Prism Launcher supports multiple mod directories:
+
+```
+instance/.minecraft/
+├── mods/           # Primary mod loader mods (Forge/Fabric/Quilt)
+├── coremods/       # Core mods (legacy Forge)
+├── nilmods/        # Nil loader mods
+└── .index/         # Mod metadata cache
+```
+
+Each directory is managed by a specialized `ModFolderModel` instance:
+
+- `loaderModList()`: Main mods directory
+- `coreModList()`: Core mods
+- `nilModList()`: Nil mods
+
+## Mod List View
+
+The mod list displays comprehensive information:
+
+### Column Layout
+
+<Accordion title="Available Columns">
+  The `ModFolderModel` provides these columns:
+  
+  - **Active**: Enable/disable checkbox
+  - **Image**: Mod icon/logo
+  - **Name**: Mod display name
+  - **Version**: Installed version
+  - **Date**: Last modified date
+  - **Provider**: Source (CurseForge, Modrinth, Local)
+  - **Size**: File size
+  - **Side**: Client/Server/Both
+  - **Loaders**: Compatible mod loaders
+  - **MC Versions**: Supported Minecraft versions
+  - **Release Type**: Release/Beta/Alpha
+  - **Requires**: Dependency count
+  - **Required By**: Dependent mod count
+  
+  Columns are customizable and hideable via header context menu.
+</Accordion>
+
+### Sorting and Filtering
+
+Mods can be sorted by any column:
+
+```cpp
+columnToSortKey(column)  // Maps column to sort type
+```
+
+Supported sort types:
+- `ENABLED`: Active mods first
+- `NAME`: Alphabetical
+- `DATE`: Modification time
+- `PROVIDER`: Source platform
+- `SIZE`: File size
+
+Filtering uses `QRegularExpression` for flexible search:
+
+```cpp
+applyFilter(QRegularExpression)  // Filter mods by regex pattern
+```
+
+## Enabling and Disabling Mods
+
+Control which mods are loaded:
+
+<Steps>
+  <Step title="Select Mods">
+    Click checkboxes or select multiple mods using Ctrl/Cmd+Click.
+  </Step>
+  
+  <Step title="Toggle State">
+    Use the enable/disable controls. Prism Launcher:
+    - Renames files: `.jar` → `.jar.disabled` or vice versa
+    - Updates mod state in memory
+    - Handles dependencies automatically
+  </Step>
+  
+  <Step title="Review Dependencies">
+    The launcher checks dependency requirements:
+    
+    ```cpp
+    getAffectedMods(indexes, action)  // Returns all affected by change
+    ```
+    
+    If disabling a mod required by others, you'll be prompted to:
+    - Disable dependent mods too
+    - Keep them enabled (may cause crashes)
+  </Step>
+</Steps>
+
+### Bulk Enable Actions
+
+The `EnableAction` system supports:
+
+```cpp
+ENABLE     // Enable selected mods
+DISABLE    // Disable selected mods
+TOGGLE     // Toggle state of each
+```
+
+## Mod Dependencies
+
+Prism Launcher tracks mod relationships:
+
+### Dependency Types
+
+<CardGroup cols={2}>
+  <Card title="Required Dependencies" icon="link">
+    Mods that must be installed:
+    
+    ```cpp
+    dependencies()      // List of required mod IDs
+    requiresList(id)    // Get requirements for specific mod
+    requiresCount()     // Number of dependencies
+    ```
+    
+    The launcher warns if requirements are missing.
+  </Card>
+  
+  <Card title="Reverse Dependencies" icon="link-slash">
+    Mods that depend on this mod:
+    
+    ```cpp
+    requiredByList(id)   // Mods that need this mod
+    requiredByCount()    // Number of dependent mods
+    ```
+    
+    Prevents accidental removal of required mods.
+  </Card>
+</CardGroup>
+
+### Dependency Resolution
+
+The launcher maintains dependency graphs:
+
+```cpp
+QHash<QString, QSet<Mod*>> m_requiredBy;  // Reverse dependency map
+QHash<QString, QSet<Mod*>> m_requires;    // Forward dependency map
+```
+
+When installing mods, `GetModDependenciesTask` can automatically:
+- Identify missing dependencies
+- Offer to download required mods
+- Resolve version conflicts
+
+## Mod Metadata and Information
+
+Each mod contains rich metadata accessible via:
+
+### Basic Information
+
+```cpp
+name()           // Display name
+mod_id()         // Unique mod identifier
+version()        // Installed version
+description()    // Mod description
+```
+
+### Extended Details
+
+```cpp
+authors()        // List of mod authors
+licenses()       // License information
+homepage()       // Mod website URL
+issueTracker()   // Bug report URL
+side()           // Client/Server/Both
+loaders()        // Compatible loaders (Forge, Fabric, Quilt)
+mcVersions()     // Supported Minecraft versions
+releaseType()    // Release/Beta/Alpha
+```
+
+### Visual Assets
+
+```cpp
+iconPath()       // Path to mod icon file
+icon(size)       // Get scaled QPixmap of mod icon
+setIcon(image)   // Update mod icon (thread-safe)
+```
+
+Icons are cached for performance using `QPixmapCache`.
+
+## Updating Mods
+
+Keep your mods current:
+
+<Steps>
+  <Step title="Check for Updates">
+    Prism Launcher can query mod platforms for newer versions:
+    - Compares installed version with latest available
+    - Filters by Minecraft version compatibility
+    - Shows update notifications in mod list
+  </Step>
+  
+  <Step title="Select Updates">
+    Choose which mods to update. The launcher shows:
+    - Current version
+    - Available version
+    - Changelog summary
+  </Step>
+  
+  <Step title="Download and Install">
+    Updates are downloaded and installed automatically:
+    
+    ```cpp
+    LocalResourceUpdateTask  // Handles mod updates
+    ```
+    
+    Old versions can be kept or removed.
+  </Step>
+</Steps>
+
+<Note>
+Automatic updates respect your Minecraft version and mod loader compatibility requirements.
+</Note>
+
+## Removing Mods
+
+<Tabs>
+  <Tab title="Standard Removal">
+    ```cpp
+    deleteResources(indexes)  // Remove selected mods
+    ```
+    
+    This:
+    1. Checks for dependent mods
+    2. Prompts for confirmation
+    3. Attempts to move to system trash (recoverable)
+    4. Falls back to permanent deletion if trash fails
+  </Tab>
+  
+  <Tab title="Remove with Metadata">
+    ```cpp
+    uninstallResource(filename, preserve_metadata)  // Control metadata
+    ```
+    
+    Options:
+    - `preserve_metadata=false`: Remove mod and all cached data
+    - `preserve_metadata=true`: Keep metadata for reinstallation
+  </Tab>
+  
+  <Tab title="Metadata Only">
+    ```cpp
+    deleteMetadata(indexes)  // Remove only cached metadata
+    ```
+    
+    Useful for forcing metadata refresh without removing mods.
+  </Tab>
+</Tabs>
+
+## Mod Cache and Indexing
+
+Prism Launcher maintains a metadata cache:
+
+```
+mods/.index/
+├── mod_id_1.json
+├── mod_id_2.json
+└── ...
+```
+
+### Cache Benefits
+
+- **Fast Loading**: Instant mod list display without reparsing
+- **Offline Access**: Metadata available without network
+- **History Tracking**: Preserves download source and version info
+
+### Cache Management
+
+```cpp
+indexDir()                    // Get cache directory path
+update()                      // Refresh mod list and cache
+resolveResource(Resource*)    // Parse and cache mod metadata
+```
+
+The cache is automatically updated when:
+- New mods are installed
+- Mod files are modified
+- Manual refresh is triggered
+
+## Advanced Mod Management
+
+### Jar Mods (Legacy)
+
+For older Minecraft versions:
+
+```cpp
+jarModsDir()                  // Legacy jar mod directory
+getJarMods()                  // List of jar mods
+```
+
+Jar mods are directly merged into the Minecraft jar file during launch.
+
+<Warning>
+Jar mods are obsolete and only supported for legacy Minecraft versions. Use modern mod loaders when possible.
+</Warning>
+
+### Mod Export and Import
+
+When exporting instances:
+- Mod files are included in the export
+- Metadata and cache are preserved
+- Mod URLs are stored for re-downloading
+
+When importing:
+- Mods are automatically placed in correct directories
+- Metadata is restored from cache
+- Missing mods can be re-downloaded if URLs available
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Version Compatibility" icon="check">
+    Always verify mod compatibility with your Minecraft version and mod loader before installing.
+  </Card>
+  
+  <Card title="Dependency Management" icon="sitemap">
+    Pay attention to dependency warnings. Install all required mods to avoid crashes.
+  </Card>
+  
+  <Card title="Regular Updates" icon="arrow-up">
+    Keep mods updated for bug fixes and new features, but test in a backup instance first.
+  </Card>
+  
+  <Card title="Performance Monitoring" icon="gauge">
+    Too many mods can impact performance. Disable unused mods to improve game speed.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Mod Won't Load
+
+Check:
+1. Mod file has `.jar` extension (not `.jar.disabled`)
+2. Correct mod loader is installed (Forge/Fabric/Quilt)
+3. Minecraft version matches mod requirements
+4. All dependencies are installed
+5. No conflicting mods
+
+### Missing Dependencies
+
+If you see dependency errors:
+```
+getDependenciesTask()  // Automatically resolve dependencies
+```
+
+Or manually install required mods listed in error messages.
+
+### Mod Conflicts
+
+When mods conflict:
+- Check mod descriptions for known incompatibilities
+- Disable one of the conflicting mods
+- Look for compatibility patches
+- Review launcher logs for specific error details
+
+### Corrupted Metadata
+
+If mod information is incorrect:
+1. Delete the `.index` folder
+2. Restart Prism Launcher
+3. Metadata will be regenerated automatically

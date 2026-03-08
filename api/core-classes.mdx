@@ -1,0 +1,466 @@
+---
+title: 'Core Classes'
+description: 'Application core, instances, and instance management classes'
+icon: 'cube'
+---
+
+## Application
+
+The main application class that manages the launcher's global state and resources.
+
+**Class:** `Application`  
+**Header:** `launcher/Application.h`  
+**Inherits:** `QApplication`
+
+### Constructor
+
+```cpp
+Application(int& argc, char** argv);
+```
+
+Creates the main application instance with command-line arguments.
+
+### Key Methods
+
+<ResponseField name="settings()" type="SettingsObject*">
+  Returns the global settings object for the application.
+</ResponseField>
+
+<ResponseField name="instances()" type="InstanceList*">
+  Returns the instance list manager containing all Minecraft instances.
+</ResponseField>
+
+<ResponseField name="accounts()" type="AccountList*">
+  Returns the account list for managing Minecraft accounts.
+</ResponseField>
+
+<ResponseField name="network()" type="QNetworkAccessManager*">
+  Returns the network access manager for HTTP requests.
+</ResponseField>
+
+<ResponseField name="metacache()" type="HttpMetaCache*">
+  Returns the HTTP metadata cache for managing downloaded files.
+</ResponseField>
+
+<ResponseField name="metadataIndex()" type="Meta::Index*">
+  Returns the metadata index for Minecraft versions and components.
+</ResponseField>
+
+### Path Management
+
+<ParamField path="root()" type="const QString&">
+  Returns the root installation directory path.
+</ParamField>
+
+<ParamField path="dataRoot()" type="const QString&">
+  Returns the data directory path where instances are stored.
+</ParamField>
+
+<ParamField path="javaPath()" type="const QString">
+  Returns the Java installation path.
+</ParamField>
+
+### Instance Management
+
+<Tabs>
+  <Tab title="Launch">
+    ```cpp
+    bool launch(
+        BaseInstance* instance,
+        LaunchMode mode = LaunchMode::Normal,
+        std::shared_ptr<MinecraftTarget> targetToJoin = nullptr,
+        shared_qobject_ptr<MinecraftAccount> accountToUse = nullptr,
+        const QString& offlineName = QString()
+    );
+    ```
+    Launches a Minecraft instance with optional server joining and account selection.
+  </Tab>
+  
+  <Tab title="Kill">
+    ```cpp
+    bool kill(BaseInstance* instance);
+    ```
+    Terminates a running instance.
+  </Tab>
+</Tabs>
+
+### Capabilities
+
+```cpp
+enum Capability {
+    None = 0,
+    SupportsMSA = 1 << 0,        // Microsoft Account support
+    SupportsFlame = 1 << 1,      // CurseForge API support
+    SupportsGameMode = 1 << 2,   // Linux GameMode support
+    SupportsMangoHud = 1 << 3    // MangoHud overlay support
+};
+```
+
+Check capabilities with:
+
+```cpp
+const Capabilities caps = APPLICATION->capabilities();
+if (caps & Application::SupportsMSA) {
+    // Microsoft authentication is available
+}
+```
+
+### Example Usage
+
+```cpp
+#include "Application.h"
+
+// Access the singleton application instance
+auto* app = APPLICATION;
+
+// Get global settings
+SettingsObject* settings = app->settings();
+
+// Get instance list
+InstanceList* instances = app->instances();
+
+// Launch an instance
+BaseInstance* instance = instances->getInstanceById("my_instance");
+if (instance) {
+    app->launch(instance);
+}
+```
+
+---
+
+## BaseInstance
+
+Base class for all Minecraft instances, providing common functionality.
+
+**Class:** `BaseInstance`  
+**Header:** `launcher/BaseInstance.h`  
+**Inherits:** `QObject`
+
+### Constructor
+
+```cpp
+BaseInstance(
+    SettingsObject* globalSettings,
+    std::unique_ptr<SettingsObject> settings,
+    const QString& rootDir
+);
+```
+
+### Identity and Naming
+
+<ResponseField name="id()" type="QString">
+  Returns the unique instance ID.
+</ResponseField>
+
+<ResponseField name="name()" type="QString">
+  Returns the display name of the instance.
+</ResponseField>
+
+<ResponseField name="setName(QString val)" type="void">
+  Sets the display name of the instance.
+</ResponseField>
+
+<ResponseField name="windowTitle()" type="QString">
+  Returns the title used for instance windows.
+</ResponseField>
+
+### Path Management
+
+<ParamField path="instanceRoot()" type="QString">
+  Returns the root directory of the instance.
+</ParamField>
+
+<ParamField path="gameRoot()" type="QString">
+  Returns the game root directory (usually same as instanceRoot).
+</ParamField>
+
+<ParamField path="modsRoot()" type="QString">
+  Returns the mods directory path (pure virtual, implemented by subclasses).
+</ParamField>
+
+### Status and State
+
+```cpp
+enum class Status {
+    Present,  // Instance is valid and present
+    Gone      // Instance was removed or invalidated
+};
+```
+
+<ResponseField name="currentStatus()" type="Status">
+  Returns the current status of the instance.
+</ResponseField>
+
+<ResponseField name="isRunning()" type="bool">
+  Returns true if the instance is currently running.
+</ResponseField>
+
+### Time Tracking
+
+<ResponseField name="totalTimePlayed()" type="int64_t">
+  Returns total playtime in milliseconds.
+</ResponseField>
+
+<ResponseField name="lastTimePlayed()" type="int64_t">
+  Returns last session duration in milliseconds.
+</ResponseField>
+
+<ResponseField name="lastLaunch()" type="qint64">
+  Returns timestamp of last launch (milliseconds since epoch).
+</ResponseField>
+
+<ResponseField name="setLastLaunch(qint64 val)" type="void">
+  Sets the last launch timestamp.
+</ResponseField>
+
+### Settings and Configuration
+
+<ResponseField name="settings()" type="SettingsObject*">
+  Returns instance-specific settings object.
+</ResponseField>
+
+<ResponseField name="notes()" type="QString">
+  Returns user notes for this instance.
+</ResponseField>
+
+<ResponseField name="setNotes(QString val)" type="void">
+  Sets user notes for this instance.
+</ResponseField>
+
+### Launch Commands
+
+<ParamField path="getPreLaunchCommand()" type="QString">
+  Returns command to execute before launching.
+</ParamField>
+
+<ParamField path="getPostExitCommand()" type="QString">
+  Returns command to execute after game exits.
+</ParamField>
+
+<ParamField path="getWrapperCommand()" type="QString">
+  Returns wrapper command for the game process.
+</ParamField>
+
+### Managed Pack Support
+
+<Expandable title="Managed Pack Methods">
+  <ResponseField name="isManagedPack()" type="bool">
+    Returns true if this is a managed modpack instance.
+  </ResponseField>
+
+  <ResponseField name="getManagedPackType()" type="QString">
+    Returns the pack type (e.g., "curseforge", "modrinth").
+  </ResponseField>
+
+  <ResponseField name="getManagedPackID()" type="QString">
+    Returns the pack's unique identifier.
+  </ResponseField>
+
+  <ResponseField name="getManagedPackVersionID()" type="QString">
+    Returns the current version identifier.
+  </ResponseField>
+
+  <ResponseField name="setManagedPack()" type="void">
+    ```cpp
+    void setManagedPack(
+        const QString& type,
+        const QString& id,
+        const QString& name,
+        const QString& versionId,
+        const QString& version
+    );
+    ```
+    Configures this instance as a managed pack.
+  </ResponseField>
+</Expandable>
+
+### Signals
+
+```cpp
+signals:
+    void propertiesChanged(BaseInstance* inst);
+    void runningStatusChanged(bool running);
+    void statusChanged(Status from, Status to);
+```
+
+### Example Usage
+
+```cpp
+#include "BaseInstance.h"
+
+BaseInstance* instance = /* ... */;
+
+// Get instance information
+qDebug() << "Instance:" << instance->name();
+qDebug() << "ID:" << instance->id();
+qDebug() << "Path:" << instance->instanceRoot();
+qDebug() << "Total playtime:" << instance->totalTimePlayed() / 1000 << "seconds";
+
+// Configure instance
+instance->setName("My Survival World");
+instance->setNotes("Modded survival with friends");
+
+// Check if it's a managed pack
+if (instance->isManagedPack()) {
+    qDebug() << "Pack type:" << instance->getManagedPackType();
+    qDebug() << "Pack ID:" << instance->getManagedPackID();
+}
+```
+
+---
+
+## InstanceList
+
+Manages the collection of all Minecraft instances.
+
+**Class:** `InstanceList`  
+**Header:** `launcher/InstanceList.h`  
+**Inherits:** `QAbstractListModel`
+
+### Constructor
+
+```cpp
+InstanceList(
+    SettingsObject* settings,
+    const QString& instDir,
+    QObject* parent = 0
+);
+```
+
+### Accessing Instances
+
+<ResponseField name="at(int i)" type="BaseInstance*">
+  Returns the instance at the specified index.
+</ResponseField>
+
+<ResponseField name="count()" type="int">
+  Returns the total number of instances.
+</ResponseField>
+
+<ResponseField name="getInstanceById(QString id)" type="BaseInstance*">
+  Finds an instance by its unique ID. Returns nullptr if not found. O(n) complexity.
+</ResponseField>
+
+<ResponseField name="getInstanceByManagedName(const QString& managed_name)" type="BaseInstance*">
+  Finds an instance by its managed pack name. O(n) complexity.
+</ResponseField>
+
+### Group Management
+
+<ParamField path="getGroups()" type="QStringList">
+  Returns list of all instance groups.
+</ParamField>
+
+<ParamField path="getInstanceGroup(const InstanceId& id)" type="GroupId">
+  Returns the group ID for an instance.
+</ParamField>
+
+<ParamField path="setInstanceGroup(const InstanceId& id, GroupId name)" type="void">
+  Assigns an instance to a group.
+</ParamField>
+
+<ParamField path="deleteGroup(const GroupId& name)" type="void">
+  Deletes a group (instances remain ungrouped).
+</ParamField>
+
+<ParamField path="renameGroup(const GroupId& src, const GroupId& dst)" type="void">
+  Renames a group.
+</ParamField>
+
+### Instance Operations
+
+<Tabs>
+  <Tab title="Trash">
+    ```cpp
+    bool trashInstance(const InstanceId& id);
+    ```
+    Moves an instance to trash. Can be undone.
+    
+    ```cpp
+    bool undoTrashInstance();
+    ```
+    Restores the last trashed instance.
+  </Tab>
+  
+  <Tab title="Delete">
+    ```cpp
+    void deleteInstance(const InstanceId& id);
+    ```
+    Permanently deletes an instance (cannot be undone).
+  </Tab>
+  
+  <Tab title="Create">
+    ```cpp
+    Task* wrapInstanceTask(InstanceTask* task);
+    ```
+    Wraps an instance creation task for execution.
+    
+    ```cpp
+    QString getStagedInstancePath();
+    ```
+    Creates a staging area for instance creation.
+    
+    ```cpp
+    bool commitStagedInstance(
+        const QString& keyPath,
+        const InstanceName& instanceName,
+        QString groupName,
+        const InstanceTask&
+    );
+    ```
+    Commits a staged instance to the instance list.
+  </Tab>
+</Tabs>
+
+### Model Roles
+
+```cpp
+enum AdditionalRoles {
+    GroupRole = Qt::UserRole,
+    InstancePointerRole = 0x34B1CB48,  // Returns BaseInstance*
+    InstanceIDRole = 0x34B1CB49        // Returns instance ID
+};
+```
+
+### Signals
+
+```cpp
+signals:
+    void instancesChanged();
+    void groupsChanged(QSet<QString> groups);
+    void instanceSelectRequest(QString instanceId);
+```
+
+### Example Usage
+
+```cpp
+#include "InstanceList.h"
+#include "Application.h"
+
+// Get the instance list from the application
+InstanceList* list = APPLICATION->instances();
+
+// Iterate through all instances
+for (int i = 0; i < list->count(); i++) {
+    BaseInstance* inst = list->at(i);
+    qDebug() << inst->name() << "-" << inst->id();
+}
+
+// Find a specific instance
+BaseInstance* inst = list->getInstanceById("my_instance_id");
+if (inst) {
+    qDebug() << "Found instance:" << inst->name();
+}
+
+// Group management
+list->setInstanceGroup("my_instance_id", "Modded");
+QStringList groups = list->getGroups();
+
+// Trash an instance (can be undone)
+if (list->trashInstance("old_instance_id")) {
+    qDebug() << "Instance moved to trash";
+    
+    // Changed your mind? Restore it
+    list->undoTrashInstance();
+}
+```

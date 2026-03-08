@@ -1,0 +1,663 @@
+---
+title: Mod Platform API Integration
+description: How Prism Launcher integrates with CurseForge (Flame) and Modrinth APIs
+---
+
+Prism Launcher integrates with multiple mod platforms to provide browsing, downloading, and updating of mods, modpacks, resource packs, and shader packs. The architecture uses a unified interface with platform-specific implementations.
+
+## Platform Architecture
+
+The mod platform system is built on an abstract `ResourceAPI` base class with concrete implementations for each platform.
+
+```cpp
+class ResourceAPI {
+public:
+    virtual ~ResourceAPI() = default;
+    
+    // Core operations
+    virtual Task::Ptr searchProjects(SearchArgs&&, Callback&&) const;
+    virtual Task::Ptr getProjectInfo(ProjectInfoArgs&&, Callback&&) const;
+    virtual Task::Ptr getProjectVersions(VersionSearchArgs&&, Callback&&) const;
+    
+    // URL generation
+    virtual auto getSearchURL(SearchArgs const&) const -> std::optional<QString> = 0;
+    virtual auto getInfoURL(QString const& id) const -> std::optional<QString> = 0;
+    virtual auto getVersionsURL(VersionSearchArgs const&) const -> std::optional<QString> = 0;
+    
+    // Data parsing
+    virtual void loadIndexedPack(ModPlatform::IndexedPack&, QJsonObject&) const = 0;
+    virtual ModPlatform::IndexedVersion loadIndexedPackVersion(QJsonObject&, ResourceType) const = 0;
+    virtual QJsonArray documentToArray(QJsonDocument&) const = 0;
+};
+```
+
+*Source: `launcher/modplatform/ResourceAPI.h:56-158`*
+
+### Supported Platforms
+
+<CardGroup cols={2}>
+  <Card title="Modrinth" icon="cube">
+    Open-source mod platform with comprehensive API
+    - Project search and browsing
+    - Version history and downloads
+    - Dependency resolution
+    - No API key required
+  </Card>
+  <Card title="CurseForge (Flame)" icon="fire">
+    Popular mod platform with extensive catalog
+    - Requires API key
+    - Fingerprint-based mod identification
+    - Addon search and metadata
+    - File hosting through CurseForge CDN
+  </Card>
+</CardGroup>
+
+## Common Data Structures
+
+### Resource Types
+
+```cpp
+namespace ModPlatform {
+    enum class ResourceProvider { MODRINTH, FLAME };
+    
+    enum class ResourceType {
+        Mod,
+        Modpack,
+        ResourcePack,
+        ShaderPack,
+        DataPack,
+        TexturePack
+    };
+}
+```
+
+### Mod Loader Types
+
+```cpp
+enum ModLoaderType {
+    NeoForge = 1 << 0,
+    Forge = 1 << 1,
+    Cauldron = 1 << 2,
+    LiteLoader = 1 << 3,
+    Fabric = 1 << 4,
+    Quilt = 1 << 5,
+    DataPack = 1 << 6,
+    Babric = 1 << 7,
+    BTA = 1 << 8,
+    LegacyFabric = 1 << 9,
+    Ornithe = 1 << 10,
+    Rift = 1 << 11
+};
+Q_DECLARE_FLAGS(ModLoaderTypes, ModLoaderType)
+```
+
+*Source: `launcher/modplatform/ModIndex.h:33-46`*
+
+<Info>
+The flags allow filtering by multiple loaders simultaneously, e.g., `Forge | NeoForge` to show mods compatible with either.
+</Info>
+
+### IndexedPack - Project Representation
+
+```cpp
+struct IndexedPack {
+    QVariant addonId;              // Platform-specific project ID
+    ResourceProvider provider;      // Modrinth or Flame
+    QString name;
+    QString slug;                   // URL-friendly identifier
+    QString description;
+    QList<ModpackAuthor> authors;
+    QString logoUrl;
+    QString websiteUrl;
+    Side side;                      // Client/Server/Universal
+    
+    // Versions
+    bool versionsLoaded = false;
+    QList<IndexedVersion> versions;
+    
+    // Extra metadata (loaded separately)
+    bool extraDataLoaded = true;
+    ExtraPackData extraData;        // Donations, links, body
+};
+```
+
+*Source: `launcher/modplatform/ModIndex.h:157-193`*
+
+### IndexedVersion - Version Information
+
+```cpp
+struct IndexedVersion {
+    QVariant addonId;              // Project ID
+    QVariant fileId;               // Version/file ID
+    QString version;               // Version string
+    QString version_number;        // Semantic version
+    IndexedVersionType version_type; // Release/Beta/Alpha
+    QStringList mcVersion;         // Compatible Minecraft versions
+    QString downloadUrl;
+    QString date;                  // Release date
+    QString fileName;
+    ModLoaderTypes loaders;        // Compatible mod loaders
+    QString hash_type;             // "sha1", "sha512", etc.
+    QString hash;                  // File hash
+    bool is_preferred;             // Featured/recommended
+    QString changelog;
+    QList<Dependency> dependencies;
+    Side side;                     // Client/Server compatibility
+};
+```
+
+*Source: `launcher/modplatform/ModIndex.h:105-142`*
+
+## Modrinth Integration
+
+### ModrinthAPI Implementation
+
+```cpp
+class ModrinthAPI : public ResourceAPI {
+public:
+    // Version lookup
+    std::pair<Task::Ptr, QByteArray*> currentVersion(QString hash, 
+                                                     QString hash_format);
+    std::pair<Task::Ptr, QByteArray*> latestVersion(QString hash,
+                                                    QString hash_format,
+                                                    std::optional<std::vector<Version>> mcVersions,
+                                                    std::optional<ModLoaderTypes> loaders);
+    
+    // Project queries
+    std::pair<Task::Ptr, QByteArray*> getProjects(QStringList addonIds) const;
+    static std::pair<Task::Ptr, QByteArray*> getModCategories();
+};
+```
+
+*Source: `launcher/modplatform/modrinth/ModrinthAPI.h:16-228`*
+
+### Search URL Construction
+
+```cpp
+auto ModrinthAPI::getSearchURL(SearchArgs const& args) const -> std::optional<QString> {
+    QStringList get_arguments;
+    
+    get_arguments.append(QString("offset=%1").arg(args.offset));
+    get_arguments.append("limit=25");
+    
+    if (args.search.has_value())
+        get_arguments.append(QString("query=%1").arg(args.search.value()));
+        
+    if (args.sorting.has_value())
+        get_arguments.append(QString("index=%1").arg(args.sorting.value().name));
+        
+    get_arguments.append(QString("facets=%1").arg(createFacets(args)));
+    
+    return MODRINTH_PROD_URL + "/search?" + get_arguments.join('&');
+}
+```
+
+*Source: `launcher/modplatform/modrinth/ModrinthAPI.h:151-170`*
+
+### Faceted Search
+
+Modrinth uses facets for filtering:
+
+```cpp
+QString createFacets(SearchArgs const& args) const {
+    QStringList facets_list;
+    
+    // Mod loaders: ["categories:fabric","categories:quilt"]
+    if (args.loaders.has_value())
+        facets_list.append(QString("[%1]").arg(getModLoaderFilters(loaders)));
+    
+    // Game versions: ["versions:1.20.1","versions:1.20.2"]
+    if (args.versions.has_value())
+        facets_list.append(QString("[%1]").arg(getGameVersionsArray(versions)));
+    
+    // Side: [["client_side:required"],["server_side:required"]]
+    if (args.side.has_value())
+        facets_list.append(QString("[%1]").arg(getSideFilters(side)));
+    
+    // Project type: ["project_type:mod"]
+    facets_list.append(QString("[\"project_type:%1\"]").arg(resourceTypeParameter(args.type)));
+    
+    return QString("[%1]").arg(facets_list.join(','));
+}
+```
+
+*Source: `launcher/modplatform/modrinth/ModrinthAPI.h:127-148`*
+
+<Accordion title="Facet Examples">
+**Search for Fabric mods for 1.20.1:**
+```
+facets=[["categories:fabric"],["versions:1.20.1"],["project_type:mod"]]
+```
+
+**Search for client-side resource packs:**
+```
+facets=[["client_side:required"],["project_type:resourcepack"]]
+```
+</Accordion>
+
+### Version Lookup
+
+Modrinth supports hash-based version lookup:
+
+```cpp
+// Find current version by file hash
+std::pair<Task::Ptr, QByteArray*> currentVersion(QString hash, QString hash_format);
+
+// Find latest compatible version by hash
+std::pair<Task::Ptr, QByteArray*> latestVersion(
+    QString hash,
+    QString hash_format,
+    std::optional<std::vector<Version>> mcVersions,
+    std::optional<ModLoaderTypes> loaders
+);
+```
+
+This enables:
+- Identifying unknown mods from their files
+- Checking for mod updates
+- Resolving dependencies
+
+### Sorting Methods
+
+```cpp
+auto ModrinthAPI::getSortingMethods() const -> QList<SortingMethod> {
+    return {
+        { 0, "relevance", tr("Sort by Relevance") },
+        { 1, "downloads", tr("Sort by Downloads") },
+        { 2, "follows", tr("Sort by Follows") },
+        { 3, "newest", tr("Sort by Newest") },
+        { 4, "updated", tr("Sort by Last Updated") }
+    };
+}
+```
+
+## CurseForge (Flame) Integration
+
+### FlameAPI Implementation
+
+```cpp
+class FlameAPI : public ResourceAPI {
+public:
+    // Metadata
+    QString getModFileChangelog(int modId, int fileId);
+    QString getModDescription(int modId);
+    
+    // File operations  
+    std::pair<Task::Ptr, QByteArray*> getProjects(QStringList addonIds) const;
+    std::pair<Task::Ptr, QByteArray*> getFiles(const QStringList& fileIds) const;
+    std::pair<Task::Ptr, QByteArray*> getFile(const QString& addonId, 
+                                              const QString& fileId) const;
+    
+    // Fingerprinting
+    std::pair<Task::Ptr, QByteArray*> matchFingerprints(const QList<uint>& fingerprints);
+    
+    // Categories
+    static std::pair<Task::Ptr, QByteArray*> getCategories(ResourceType type);
+};
+```
+
+*Source: `launcher/modplatform/flame/FlameAPI.h:15-174`*
+
+### API Key Management
+
+CurseForge requires an API key:
+
+```cpp
+QString Application::getFlameAPIKey() {
+    // Returns configured CurseForge API key
+    // Can be overridden by CURSEFORGE_API_KEY env variable
+}
+```
+
+All requests include:
+```cpp
+request.setRawHeader("x-api-key", apiKey.toUtf8());
+```
+
+<Note>
+Prism Launcher includes a default API key, but users can provide their own for higher rate limits or if the default is revoked.
+</Note>
+
+### Class ID System
+
+CurseForge uses class IDs to categorize resources:
+
+```cpp
+static int getClassId(ResourceType type) {
+    switch (type) {
+        case ResourceType::Mod:          return 6;
+        case ResourceType::ResourcePack: return 12;
+        case ResourceType::ShaderPack:   return 6552;
+        case ResourceType::Modpack:      return 4471;
+        case ResourceType::DataPack:     return 6945;
+    }
+}
+```
+
+*Source: `launcher/modplatform/flame/FlameAPI.h:42-57`*
+
+### Mod Loader Mapping
+
+CurseForge uses numeric IDs for mod loaders:
+
+```cpp
+static int getMappedModLoader(ModLoaderType loaders) {
+    switch (loaders) {
+        case ModPlatform::Forge:      return 1;
+        case ModPlatform::Cauldron:   return 2;
+        case ModPlatform::LiteLoader: return 3;
+        case ModPlatform::Fabric:     return 4;
+        case ModPlatform::Quilt:      return 5;
+        case ModPlatform::NeoForge:   return 6;
+        default:                      return 0;
+    }
+}
+```
+
+*Source: `launcher/modplatform/flame/FlameAPI.h:59-84`*
+
+### Search URL Construction
+
+```cpp
+std::optional<QString> FlameAPI::getSearchURL(SearchArgs const& args) const {
+    QStringList get_arguments;
+    
+    get_arguments.append(QString("classId=%1").arg(getClassId(args.type)));
+    get_arguments.append(QString("index=%1").arg(args.offset));
+    get_arguments.append("pageSize=25");
+    
+    if (args.search.has_value())
+        get_arguments.append(QString("searchFilter=%1").arg(args.search.value()));
+        
+    if (args.sorting.has_value())
+        get_arguments.append(QString("sortField=%1").arg(args.sorting.value().index));
+    get_arguments.append("sortOrder=desc");
+    
+    if (args.loaders.has_value()) {
+        ModLoaderTypes loaders = args.loaders.value();
+        loaders &= ~ModLoaderType::DataPack;  // Filter out unsupported
+        if (loaders != 0)
+            get_arguments.append(QString("modLoaderTypes=%1").arg(getModLoaderFilters(loaders)));
+    }
+    
+    if (args.versions.has_value() && !args.versions.value().empty())
+        get_arguments.append(QString("gameVersion=%1").arg(args.versions.value().front().toString()));
+    
+    return FLAME_BASE_URL + "/mods/search?gameId=432&" + get_arguments.join('&');
+}
+```
+
+*Source: `launcher/modplatform/flame/FlameAPI.h:100-124`*
+
+### Fingerprint Matching
+
+CurseForge uses Murmur2 hash fingerprints to identify mods:
+
+```cpp
+std::pair<Task::Ptr, QByteArray*> matchFingerprints(const QList<uint>& fingerprints);
+```
+
+Process:
+1. Calculate Murmur2 hash of mod file
+2. Send fingerprints to CurseForge API
+3. Receive matching mod metadata
+4. Used for identifying mods in imported modpacks
+
+### Sorting Methods
+
+```cpp
+QList<SortingMethod> FlameAPI::getSortingMethods() const {
+    return {
+        { 1, "Featured", tr("Sort by Featured") },
+        { 2, "Popularity", tr("Sort by Popularity") },
+        { 3, "LastUpdated", tr("Sort by Last Updated") },
+        { 4, "Name", tr("Sort by Name") },
+        { 5, "Author", tr("Sort by Author") },
+        { 6, "TotalDownloads", tr("Sort by Downloads") },
+        { 11, "GameVersion", tr("Sort by Game Version") }
+    };
+}
+```
+
+## Search Arguments
+
+Both APIs use a unified search arguments structure:
+
+```cpp
+struct SearchArgs {
+    ModPlatform::ResourceType type{};
+    int offset = 0;  // Pagination
+    
+    std::optional<QString> search;              // Search query
+    std::optional<SortingMethod> sorting;       // Sort order
+    std::optional<ModLoaderTypes> loaders;      // Loader filter
+    std::optional<std::vector<Version>> versions; // MC version filter
+    std::optional<Side> side;                   // Client/Server filter
+    std::optional<QStringList> categoryIds;     // Category filter
+    bool openSource;                            // Open source only (Modrinth)
+};
+```
+
+*Source: `launcher/modplatform/ResourceAPI.h:78-89`*
+
+## Callback Pattern
+
+API operations use callbacks for asynchronous handling:
+
+```cpp
+template <typename T>
+struct Callback {
+    std::function<void(T&)> on_succeed;
+    std::function<void(QString const& reason, int network_error_code)> on_fail;
+    std::function<void()> on_abort;
+};
+
+// Example usage:
+api->searchProjects(
+    SearchArgs{...},
+    ResourceAPI::Callback<QList<IndexedPack::Ptr>>{
+        .on_succeed = [](auto& results) {
+            // Handle search results
+        },
+        .on_fail = [](auto& reason, int code) {
+            // Handle error
+        }
+    }
+);
+```
+
+*Source: `launcher/modplatform/ResourceAPI.h:72-76`*
+
+## Dependency Resolution
+
+### Dependency Types
+
+```cpp
+enum class DependencyType { 
+    REQUIRED,      // Must be installed
+    OPTIONAL,      // User can choose to install
+    INCOMPATIBLE,  // Cannot be used together
+    EMBEDDED,      // Included in the mod file
+    TOOL,          // Development tool
+    INCLUDE,       // Included at compile time
+    UNKNOWN 
+};
+```
+
+*Source: `launcher/modplatform/ModIndex.h:52`*
+
+### Dependency Structure
+
+```cpp
+struct Dependency {
+    QVariant addonId;      // Project ID
+    DependencyType type;   // Relationship type
+    QString version;       // Specific version (optional)
+};
+```
+
+### Dependency Resolution Process
+
+```cpp
+Task::Ptr getDependencyVersion(DependencySearchArgs&& args, 
+                              Callback<IndexedVersion>&& callback) const;
+
+struct DependencySearchArgs {
+    ModPlatform::Dependency dependency;
+    Version mcVersion;
+    ModLoaderTypes loader;
+};
+```
+
+The launcher:
+1. Parses dependencies from mod metadata
+2. Queries platform API for compatible versions
+3. Prompts user to install required dependencies
+4. Automatically includes embedded dependencies
+5. Warns about incompatibilities
+
+## Version Compatibility Checking
+
+### Side Compatibility
+
+```cpp
+enum class Side { 
+    NoSide = 0, 
+    ClientSide = 1 << 0, 
+    ServerSide = 1 << 1, 
+    UniversalSide = ClientSide | ServerSide 
+};
+```
+
+*Source: `launcher/modplatform/ModIndex.h:54`*
+
+The launcher filters versions based on:
+- Instance type (client vs server)
+- User preference for side-only mods
+
+### Loader Compatibility
+
+Versions are filtered by mod loader:
+
+```cpp
+struct IndexedVersion {
+    ModLoaderTypes loaders;  // Bitmask of compatible loaders
+};
+
+// Check compatibility
+if (version.loaders & instance->getModLoader()) {
+    // Compatible
+}
+```
+
+### Game Version Compatibility
+
+```cpp
+struct IndexedVersion {
+    QStringList mcVersion;  // List of compatible Minecraft versions
+};
+
+// Versions can support multiple MC versions
+// e.g., ["1.20", "1.20.1", "1.20.2"]
+```
+
+## Caching Strategy
+
+API responses are cached via `HttpMetaCache`:
+
+```cpp
+HttpMetaCache* cache = APPLICATION->metacache();
+
+// Cache entry configuration
+MetaEntryPtr entry = cache->resolveEntry(
+    "modrinth",              // Base (platform)
+    "project/" + projectId   // Path
+);
+entry->setStale(true);  // Validate on next use
+```
+
+Cache policies:
+- **Search results** - Short TTL (5 minutes)
+- **Project metadata** - Medium TTL (1 hour)  
+- **Version lists** - Medium TTL (1 hour)
+- **File downloads** - Long TTL, validated by hash
+
+## Rate Limiting
+
+Both platforms have rate limits:
+
+**Modrinth:**
+- No authentication required
+- 300 requests per minute per IP
+
+**CurseForge:**
+- API key required
+- Limits vary by key tier
+- Default key: ~100 requests per minute
+
+<Info>
+The launcher batches requests where possible and implements exponential backoff on rate limit errors.
+</Info>
+
+## Update Checking
+
+For installed mods and modpacks:
+
+```cpp
+class CheckUpdateTask : public Task {
+public:
+    // Check for updates to installed resources
+    // Queries APIs with current versions
+    // Reports available updates
+};
+```
+
+The process:
+1. Hash installed mod files
+2. Query platform API with hashes
+3. Compare current vs latest versions
+4. Filter by compatibility (MC version, loader)
+5. Present updates to user
+
+## Platform Selection
+
+Users can configure preferred platform:
+- Primary platform for searches
+- Fallback to secondary platform
+- Some mods only available on one platform
+
+```cpp
+enum class ResourceProvider { MODRINTH, FLAME };
+
+struct IndexedPack {
+    ResourceProvider provider;  // Original source
+};
+```
+
+## Error Handling
+
+Common API error scenarios:
+
+<Accordion title="Network Errors">
+- Connection timeout
+- DNS resolution failure
+- SSL certificate errors
+
+**Handling:** Retry with exponential backoff, show user-friendly error
+</Accordion>
+
+<Accordion title="HTTP Errors">
+- `404 Not Found` - Project/version doesn't exist
+- `403 Forbidden` - API key invalid or rate limited  
+- `500 Server Error` - Platform API issues
+
+**Handling:** Cache where possible, provide fallback options
+</Accordion>
+
+<Accordion title="Parse Errors">
+- Malformed JSON response
+- Missing required fields
+- Unexpected data types
+
+**Handling:** Log for debugging, skip invalid entries, show partial results
+</Accordion>

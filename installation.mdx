@@ -1,0 +1,404 @@
+---
+title: Installation Guide
+description: Step-by-step instructions for installing Prism Launcher on Windows, Linux, and macOS
+---
+
+# Installation Guide
+
+Prism Launcher is available for Windows, Linux, and macOS. Choose your platform below for detailed installation instructions.
+
+<Info>
+All official downloads are available at [prismlauncher.org/download](https://prismlauncher.org/download)
+</Info>
+
+## System Requirements
+
+Before installing, ensure your system meets these requirements:
+
+- **Operating System**: Windows 7+, Linux (any modern distribution), or macOS 10.14+
+- **Memory**: At least 4 GB RAM (8 GB recommended for modded Minecraft)
+- **Java**: Java 8+ (the launcher can download Java automatically)
+- **Graphics**: OpenGL 3.2+ compatible graphics card
+- **Storage**: 500 MB for the launcher, plus space for Minecraft installations
+
+<Warning>
+Minecraft itself has varying Java requirements:
+- Minecraft 1.17 and later require Java 17+
+- Minecraft 1.16.5 and earlier work with Java 8+
+- Prism Launcher can manage multiple Java installations
+</Warning>
+
+## Installation by Platform
+
+<Tabs>
+  <Tab title="Windows">
+    ### Windows Installation
+
+    <Steps>
+      <Step title="Download the Installer">
+        Visit [prismlauncher.org/download](https://prismlauncher.org/download) and download the Windows installer (`.exe` file).
+      </Step>
+      
+      <Step title="Run the Installer">
+        Double-click the downloaded `.exe` file. You may see a Windows SmartScreen warning - click "More info" then "Run anyway" if prompted.
+      </Step>
+      
+      <Step title="Follow the Installation Wizard">
+        - Choose your installation directory (default: `C:\Program Files\PrismLauncher`)
+        - Select whether to create a desktop shortcut
+        - Click "Install" to complete the installation
+      </Step>
+      
+      <Step title="Launch Prism Launcher">
+        Use the desktop shortcut or Start menu entry to launch Prism Launcher for the first time.
+      </Step>
+    </Steps>
+
+    #### Portable Installation
+
+    For a portable installation that can run from a USB drive:
+
+    1. Download the **Windows (Portable)** ZIP archive
+    2. Extract to your desired location
+    3. Run `prismlauncher.exe` directly
+
+    <Note>
+    The portable version stores all data in its own directory, making it easy to move or backup.
+    </Note>
+
+    #### Package Managers
+
+    <CodeGroup>
+    ```powershell Chocolatey
+    choco install prismlauncher
+    ```
+
+    ```powershell Scoop
+    scoop bucket add games
+    scoop install prismlauncher
+    ```
+
+    ```powershell winget
+    winget install PrismLauncher.PrismLauncher
+    ```
+    </CodeGroup>
+
+  </Tab>
+  
+  <Tab title="Linux">
+    ### Linux Installation
+
+    Linux users have multiple installation options depending on their distribution.
+
+    #### Flatpak (Recommended)
+
+    Flatpak provides the most up-to-date version across all distributions:
+
+    <CodeGroup>
+    ```bash Install from Flathub
+    flatpak install flathub org.prismlauncher.PrismLauncher
+    ```
+
+    ```bash Run Prism Launcher
+    flatpak run org.prismlauncher.PrismLauncher
+    ```
+    </CodeGroup>
+
+    <Note>
+    If you don't have Flatpak installed, visit [flatpak.org/setup](https://flatpak.org/setup/) for distribution-specific instructions.
+    </Note>
+
+    #### Distribution Packages
+
+    <CodeGroup>
+    ```bash Arch Linux
+    # Official repositories
+    sudo pacman -S prismlauncher
+
+    # Or from AUR (development version)
+    yay -S prismlauncher-git
+    ```
+
+    ```bash Fedora
+    sudo dnf install prismlauncher
+    ```
+
+    ```bash Debian/Ubuntu
+    # Add the PPA
+    sudo add-apt-repository ppa:prismlauncher/prismlauncher
+    sudo apt update
+    sudo apt install prismlauncher
+    ```
+
+    ```bash openSUSE
+    sudo zypper install prismlauncher
+    ```
+
+    ```bash Gentoo
+    emerge --ask games-action/prismlauncher
+    ```
+
+    ```bash Nix/NixOS
+    # Add to your configuration
+    nix-env -iA nixpkgs.prismlauncher
+    
+    # Or in configuration.nix
+    environment.systemPackages = [ pkgs.prismlauncher ];
+    ```
+    </CodeGroup>
+
+    #### AppImage
+
+    For a universal, portable option:
+
+    <CodeGroup>
+    ```bash Download and Run
+    # Download the AppImage
+    wget https://prismlauncher.org/download/appimage
+
+    # Make it executable
+    chmod +x PrismLauncher-*.AppImage
+
+    # Run it
+    ./PrismLauncher-*.AppImage
+    ```
+    </CodeGroup>
+
+    #### Building from Source
+
+    For advanced users who want to build from source:
+
+    <Steps>
+      <Step title="Install Build Dependencies">
+        ```bash
+        # Debian/Ubuntu
+        sudo apt install build-essential cmake extra-cmake-modules \
+          qt6-base-dev qt6-base-private-dev qt6-networkauth-dev \
+          libqt6svg6-dev libgl1-mesa-dev zlib1g-dev libarchive-dev \
+          libqrencode-dev libcmark-dev libtomlplusplus-dev
+
+        # Fedora
+        sudo dnf install cmake extra-cmake-modules gcc-c++ \
+          qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtnetworkauth-devel \
+          qt6-qtsvg-devel mesa-libGL-devel zlib-devel libarchive-devel \
+          qrencode-devel cmark-devel tomlplusplus-devel
+
+        # Arch Linux
+        sudo pacman -S base-devel cmake extra-cmake-modules \
+          qt6-base qt6-networkauth qt6-svg mesa zlib libarchive \
+          qrencode cmark tomlplusplus
+        ```
+      </Step>
+      
+      <Step title="Clone and Build">
+        ```bash
+        # Clone the repository
+        git clone --recursive https://github.com/PrismLauncher/PrismLauncher.git
+        cd PrismLauncher
+
+        # Create build directory
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+          -DLauncher_BUILD_PLATFORM=linux
+
+        # Build
+        cmake --build build -j$(nproc)
+
+        # Install (optional)
+        sudo cmake --install build
+        ```
+      </Step>
+    </Steps>
+
+    <Info>
+    When building for distribution, set `Launcher_BUILD_PLATFORM` to your distribution slug (e.g., `archlinux`, `fedora`, `ubuntu`).
+    </Info>
+
+  </Tab>
+  
+  <Tab title="macOS">
+    ### macOS Installation
+
+    <Steps>
+      <Step title="Download the DMG">
+        Visit [prismlauncher.org/download](https://prismlauncher.org/download) and download the macOS DMG file.
+        
+        Choose the appropriate version:
+        - **Universal**: Works on both Intel and Apple Silicon Macs
+        - **Intel**: Optimized for Intel-based Macs
+        - **ARM64**: Optimized for Apple Silicon (M1/M2/M3) Macs
+      </Step>
+      
+      <Step title="Open the DMG">
+        Double-click the downloaded `.dmg` file to mount it.
+      </Step>
+      
+      <Step title="Install the Application">
+        Drag the **Prism Launcher** icon to the **Applications** folder.
+      </Step>
+      
+      <Step title="Launch Prism Launcher">
+        Open Prism Launcher from your Applications folder.
+        
+        On first launch, you may see a security warning because the app is downloaded from the internet:
+        1. Right-click (or Control-click) on Prism Launcher
+        2. Select "Open" from the menu
+        3. Click "Open" in the security dialog
+      </Step>
+    </Steps>
+
+    #### Homebrew
+
+    For users who prefer Homebrew:
+
+    <CodeGroup>
+    ```bash Install via Homebrew
+    brew install --cask prismlauncher
+    ```
+
+    ```bash Update via Homebrew
+    brew upgrade prismlauncher
+    ```
+    </CodeGroup>
+
+    #### macOS Bundle Configuration
+
+    The macOS app bundle is structured as follows (from `CMakeLists.txt:356-362`):
+
+    ```
+    Prism Launcher.app/
+    ├── Contents/
+    │   ├── MacOS/           # Binary and libraries
+    │   ├── Frameworks/      # Qt frameworks
+    │   ├── Resources/       # Icons and resources
+    │   └── Info.plist       # App metadata
+    ```
+
+    <Note>
+    macOS includes automatic update support via Sparkle framework, allowing in-app updates without manual downloads.
+    </Note>
+
+  </Tab>
+</Tabs>
+
+## Development Builds
+
+<Warning>
+Development builds are **not intended for most users**. They may contain bugs, crashes, and instabilities. Use at your own risk!
+</Warning>
+
+Development builds provide access to the latest features before they reach stable releases:
+
+- **GitHub Actions**: [github.com/PrismLauncher/PrismLauncher/actions](https://github.com/PrismLauncher/PrismLauncher/actions)
+- **Nightly Builds**: [prismlauncher.org/nightly](https://prismlauncher.org/nightly)
+- **Flatpak Nightly**: [flatpak.prismlauncher.org](https://flatpak.prismlauncher.org/prismlauncher-nightly.flatpakref)
+
+### Installing Nightly Flatpak
+
+```bash
+flatpak remote-add --if-not-exists prismlauncher-nightly \
+  https://flatpak.prismlauncher.org/prismlauncher-nightly.flatpakrepo
+
+flatpak install prismlauncher-nightly org.prismlauncher.PrismLauncher
+```
+
+## Build Requirements (Source)
+
+For those building from source, here are the technical requirements from `CMakeLists.txt`:
+
+```cmake
+# Minimum CMake version
+cmake_minimum_required(VERSION 3.22)
+
+# C++ and C standards
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_C_STANDARD 11)
+
+# Qt version
+find_package(Qt6 6.4 REQUIRED COMPONENTS 
+    Core CoreTools Widgets Concurrent Network Test Xml NetworkAuth OpenGL)
+
+# Additional dependencies
+find_package(cmark REQUIRED)
+find_package(tomlplusplus 3.2.0)
+find_package(LibArchive)
+find_package(ZLIB REQUIRED)
+```
+
+### Build Options
+
+Common CMake options when building:
+
+```bash
+# Enable Link Time Optimization
+-DENABLE_LTO=ON
+
+# Build tests
+-DBUILD_TESTING=ON
+
+# Set build platform
+-DLauncher_BUILD_PLATFORM="yourplatform"
+
+# Enable Java downloader (disabled by default on Linux)
+-DLauncher_ENABLE_JAVA_DOWNLOADER=ON
+```
+
+## Verification
+
+After installation, verify Prism Launcher is working:
+
+<Steps>
+  <Step title="Launch the Application">
+    Open Prism Launcher using your preferred method.
+  </Step>
+  
+  <Step title="Check the Version">
+    Navigate to **Help** → **About** to verify you have the correct version installed.
+  </Step>
+  
+  <Step title="Complete Setup Wizard">
+    Follow the first-time setup wizard to configure language, Java, and memory settings.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Application won't start">
+    - **Windows**: Ensure you have the Visual C++ Redistributable installed
+    - **Linux**: Verify all dependencies are installed (check distribution packages)
+    - **macOS**: Make sure you've allowed the app in Security & Privacy settings
+  </Accordion>
+  
+  <Accordion title="Missing Java">
+    Prism Launcher can automatically download Java for you:
+    1. Go to **Settings** → **Java**
+    2. Click **Auto-detect** or **Download Java**
+    3. Select the appropriate Java version for your Minecraft version
+  </Accordion>
+  
+  <Accordion title="Permission errors on Linux">
+    If using Flatpak, you may need to grant additional permissions:
+    ```bash
+    flatpak override --user org.prismlauncher.PrismLauncher \
+      --filesystem=xdg-data/PrismLauncher:create
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that Prism Launcher is installed:
+
+1. **[Quick Start Guide](/quickstart)**: Learn how to create your first instance
+2. **Configure Settings**: Customize Java, memory allocation, and appearance
+3. **Add Accounts**: Sign in with your Microsoft account
+4. **Join the Community**: Get help and share your setups
+
+---
+
+For additional help, visit:
+- **Documentation**: [prismlauncher.org/wiki](https://prismlauncher.org/wiki)
+- **Discord**: [prismlauncher.org/discord](https://prismlauncher.org/discord)
+- **Bug Reports**: [github.com/PrismLauncher/PrismLauncher/issues](https://github.com/PrismLauncher/PrismLauncher/issues)

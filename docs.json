@@ -1,122 +1,118 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Prism Launcher",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#aaca72",
+    "light": "#8c5a56",
+    "dark": "#b5c1d1"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/a27d6b5c-e51e-45d0-a2e8-7d82c99320fd.png",
+  "logo": {
+    "light": "https://media.brand.dev/a27d6b5c-e51e-45d0-a2e8-7d82c99320fd.png",
+    "dark": "https://media.brand.dev/a27d6b5c-e51e-45d0-a2e8-7d82c99320fd.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/PrismLauncher/PrismLauncher"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/PrismLauncher/PrismLauncher",
+      "discord": "https://prismlauncher.org/discord"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "User Guide",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "guides/instances",
+              "guides/mod-management",
+              "guides/resource-packs",
+              "guides/java-setup",
+              "guides/settings"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Mod Platforms",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "mod-platforms/modrinth",
+              "mod-platforms/curseforge",
+              "mod-platforms/atlauncher",
+              "mod-platforms/ftb",
+              "mod-platforms/technic"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Advanced",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "advanced/custom-commands",
+              "advanced/environment-variables",
+              "advanced/command-line",
+              "advanced/portable-mode"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Development",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Contributing",
             "pages": [
-              "api-reference/introduction"
+              "development/getting-started",
+              "development/building",
+              "development/code-style",
+              "development/ai-policy"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Architecture",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "development/architecture/overview",
+              "development/architecture/instance-management",
+              "development/architecture/authentication",
+              "development/architecture/mod-platform-api"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/core-classes",
+              "api/instance-api",
+              "api/mod-api",
+              "api/network-api"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Community",
+        "groups": [
+          {
+            "group": "Resources",
+            "pages": [
+              "community/support",
+              "community/translations",
+              "community/faq"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

@@ -1,0 +1,494 @@
+---
+title: Java Version Management and Auto-Download
+description: Configure Java installations, manage multiple Java versions, and use automatic Java download in Prism Launcher
+---
+
+Prism Launcher provides comprehensive Java management, including automatic Java version detection, download, and configuration for optimal Minecraft compatibility.
+
+## Understanding Java in Minecraft
+
+Minecraft is written in Java and requires a Java Runtime Environment (JRE) to run. Different Minecraft versions require different Java versions:
+
+- **Minecraft 1.17+**: Requires Java 17 or newer
+- **Minecraft 1.16.5 and older**: Works with Java 8
+- **Legacy versions**: May require Java 8 or older
+
+<Note>
+Prism Launcher can automatically detect required Java versions and download the appropriate runtime for your Minecraft version.
+</Note>
+
+## Java Installation Structure
+
+Java installations are represented by the `JavaInstall` class:
+
+```cpp
+struct JavaInstall {
+    JavaVersion id;      // Java version (e.g., "17.0.1")
+    QString arch;        // Architecture (e.g., "amd64", "arm64")
+    QString path;        // Path to java executable
+    bool is_64bit;       // Whether 64-bit runtime
+}
+```
+
+## Automatic Java Detection
+
+Prism Launcher automatically scans your system for Java installations:
+
+### Detection Locations
+
+<Tabs>
+  <Tab title="Windows">
+    - `C:\Program Files\Java\`
+    - `C:\Program Files (x86)\Java\`
+    - Windows Registry entries
+    - `JAVA_HOME` environment variable
+    - System PATH
+  </Tab>
+  
+  <Tab title="macOS">
+    - `/Library/Java/JavaVirtualMachines/`
+    - `/System/Library/Java/JavaVirtualMachines/`
+    - `~/.sdkman/candidates/java/`
+    - `/usr/libexec/java_home` output
+    - `JAVA_HOME` environment variable
+  </Tab>
+  
+  <Tab title="Linux">
+    - `/usr/lib/jvm/`
+    - `/usr/java/`
+    - `~/.sdkman/candidates/java/`
+    - `~/.jabba/jdk/`
+    - `JAVA_HOME` environment variable
+    - System PATH
+  </Tab>
+</Tabs>
+
+### Java Version Checking
+
+The `JavaChecker` validates Java installations:
+
+```cpp
+class JavaChecker {
+    // Verifies Java executable works
+    // Checks version compatibility
+    // Tests memory allocation
+    // Validates architecture
+}
+```
+
+Validation checks:
+1. Executable exists and is runnable
+2. Java version can be determined
+3. Required memory can be allocated
+4. Architecture matches system
+
+## Automatic Java Download
+
+Prism Launcher can automatically download Java when needed:
+
+### Auto-Install Process
+
+The `AutoInstallJava` launch step handles automatic Java setup:
+
+```cpp
+class AutoInstallJava : public LaunchStep {
+    void executeTask() override;
+    void downloadJava(version, javaName);
+    void tryNextMajorJava();
+}
+```
+
+<Steps>
+  <Step title="Version Detection">
+    When launching an instance:
+    
+    ```cpp
+    getJavaVersion()  // Determine required Java major version
+    ```
+    
+    Checks instance requirements and Minecraft version.
+  </Step>
+  
+  <Step title="Check Existing Java">
+    Searches for compatible Java installation:
+    - Scans detected Java installations
+    - Checks configured Java path
+    - Validates version and architecture
+  </Step>
+  
+  <Step title="Download if Needed">
+    If no compatible Java found:
+    
+    ```cpp
+    downloadJava(version, javaName)  // Fetch Java runtime
+    ```
+    
+    Downloads from:
+    - Adoptium (Eclipse Temurin)
+    - Other configured Java sources
+    
+    Progress shown in launch dialog.
+  </Step>
+  
+  <Step title="Install and Configure">
+    Downloaded Java is:
+    - Extracted to launcher's Java directory
+    - Registered in Java installation list
+    - Automatically selected for the instance
+    
+    ```cpp
+    setJavaPath(path)  // Configure instance Java
+    ```
+  </Step>
+</Steps>
+
+<Note>
+Automatic Java download only occurs if enabled in settings and no compatible Java is found.
+</Note>
+
+## Configuring Java Settings
+
+### Global Java Configuration
+
+Set default Java for all instances:
+
+<Steps>
+  <Step title="Open Java Settings">
+    Go to Settings → Java
+  </Step>
+  
+  <Step title="Select Java Version">
+    Choose from detected installations or browse for custom Java:
+    
+    ```cpp
+    JavaInstallList  // Manages list of Java installations
+    ```
+    
+    Options:
+    - **Auto-detect**: Use system Java
+    - **Specific version**: Choose from dropdown
+    - **Custom path**: Browse to java executable
+  </Step>
+  
+  <Step title="Configure Memory">
+    Set memory allocation:
+    - **Minimum memory**: Starting heap size (Xms)
+    - **Maximum memory**: Maximum heap size (Xmx)
+    - **PermGen**: Permanent generation (Java 7 and older)
+    
+    Recommended:
+    - Minimum: 512 MB
+    - Maximum: 4-8 GB for modded, 2-4 GB for vanilla
+  </Step>
+  
+  <Step title="Java Arguments">
+    Add custom JVM arguments:
+    
+    ```cpp
+    javaArguments()  // Returns configured JVM args
+    ```
+    
+    Common arguments:
+    - `-Xmx4G`: Maximum 4GB RAM
+    - `-Xms512M`: Minimum 512MB RAM
+    - `-XX:+UseG1GC`: Use G1 garbage collector
+  </Step>
+</Steps>
+
+### Instance-Specific Java
+
+Override Java settings per instance:
+
+<Steps>
+  <Step title="Edit Instance Settings">
+    Right-click instance → "Edit Instance" → "Settings" → "Java"
+  </Step>
+  
+  <Step title="Enable Override">
+    Check "Override global Java settings"
+    
+    Uses `OverrideSetting` system:
+    ```cpp
+    registerOverride(original, gate)  // Instance overrides global
+    ```
+  </Step>
+  
+  <Step title="Configure Instance Java">
+    Set instance-specific:
+    - Java version/path
+    - Memory allocation
+    - JVM arguments
+    - Wrapper commands
+  </Step>
+</Steps>
+
+<Warning>
+Instance settings override global settings. Changes to global settings won't affect instances with overrides enabled.
+</Warning>
+
+## Java Version Validation
+
+Prism validates Java before launch:
+
+### Validation Process
+
+```cpp
+class VerifyJavaInstall : public LaunchStep {
+    // Checks Java is installed
+    // Verifies version compatibility  
+    // Tests memory allocation
+    // Validates arguments
+}
+```
+
+The `CheckJava` step performs:
+
+<Steps>
+  <Step title="Executable Check">
+    Verifies Java executable exists and is runnable:
+    
+    ```cpp
+    JavaChecker::run()  // Test Java executable
+    ```
+  </Step>
+  
+  <Step title="Version Check">
+    Confirms Java version meets requirements:
+    - Extracts version from `java -version`
+    - Compares with Minecraft requirements
+    - Checks for major version match
+  </Step>
+  
+  <Step title="Memory Test">
+    Tests memory allocation:
+    - Validates Xms and Xmx values
+    - Checks system has available RAM
+    - Ensures Xms ≤ Xmx
+  </Step>
+  
+  <Step title="Architecture Check">
+    Verifies architecture compatibility:
+    - Checks 32-bit vs 64-bit
+    - Validates ARM vs x86
+    - Ensures Java matches system
+  </Step>
+</Steps>
+
+### Common Validation Errors
+
+<Accordion title="Java Validation Failed">
+  If validation fails:
+  
+  ```cpp
+  javaBinaryWasBad(parent, result)  // Show error dialog
+  ```
+  
+  Possible causes:
+  - Java executable not found
+  - Wrong Java version
+  - Insufficient permissions
+  - Corrupted Java installation
+  
+  Solutions:
+  - Reinstall Java
+  - Check file permissions
+  - Use automatic Java download
+  - Verify Java path is correct
+</Accordion>
+
+<Accordion title="Invalid JVM Arguments">
+  If JVM arguments are invalid:
+  
+  ```cpp
+  javaArgsWereBad(parent, result)  // Show argument error
+  ```
+  
+  Common issues:
+  - Syntax errors in arguments
+  - Unsupported flags for Java version
+  - Memory values too large
+  - Conflicting arguments
+  
+  Use `checkJVMArgs()` to validate before saving.
+</Accordion>
+
+## Java Metadata System
+
+Prism maintains Java metadata for downloads:
+
+```cpp
+class JavaMetadata {
+    // Stores Java download information
+    // Tracks available versions
+    // Manages download URLs
+}
+```
+
+Metadata includes:
+- Available Java versions
+- Download URLs per platform
+- Checksums for verification
+- Architecture support
+- Version compatibility
+
+## Advanced Java Configuration
+
+### Java Arguments Reference
+
+Commonly used JVM arguments:
+
+<Accordion title="Memory Arguments">
+  ```bash
+  -Xms512M          # Initial heap size
+  -Xmx4G            # Maximum heap size
+  -XX:PermSize=128m # PermGen initial (Java 7)
+  -XX:MaxPermSize=256m # PermGen max (Java 7)
+  ```
+</Accordion>
+
+<Accordion title="Garbage Collection">
+  ```bash
+  -XX:+UseG1GC              # Use G1 (recommended)
+  -XX:+UseZGC               # Use ZGC (Java 11+)
+  -XX:+UseShenandoahGC      # Use Shenandoah
+  -XX:MaxGCPauseMillis=200  # Target GC pause time
+  ```
+</Accordion>
+
+<Accordion title="Performance Tuning">
+  ```bash
+  -XX:+UnlockExperimentalVMOptions
+  -XX:+UseStringDeduplication
+  -XX:+OptimizeStringConcat
+  -Dfile.encoding=UTF-8
+  ```
+</Accordion>
+
+<Accordion title="Debugging">
+  ```bash
+  -XX:+PrintGC              # Log GC activity
+  -XX:+PrintGCDetails       # Detailed GC logs
+  -Xlog:gc*                 # Java 9+ GC logging
+  -XX:+HeapDumpOnOutOfMemoryError
+  ```
+</Accordion>
+
+### Wrapper Commands
+
+Execute Java through wrapper:
+
+```cpp
+getWrapperCommand()  // Command to wrap Java execution
+```
+
+Use cases:
+- Performance profilers
+- Debugging tools
+- Custom launchers
+- Compatibility layers
+
+Example wrapper:
+```bash
+gamemoderun %command%  # Linux game mode
+```
+
+## Testing Java Configuration
+
+Validate your Java setup:
+
+<Steps>
+  <Step title="Open Java Test Dialog">
+    Settings → Java → "Test"
+  </Step>
+  
+  <Step title="Run Test Check">
+    ```cpp
+    TestCheck::run()  // Execute Java validation
+    ```
+    
+    Tests:
+    - Java executable works
+    - Version is correct
+    - Memory can be allocated
+    - Arguments are valid
+  </Step>
+  
+  <Step title="Review Results">
+    Success:
+    ```cpp
+    javaWasOk(parent, result)  // Show success dialog
+    ```
+    
+    Failure: Error dialog shows specific issue
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Latest Java" icon="arrow-up">
+    For modern Minecraft versions (1.17+), always use Java 17 or newer for best performance and security.
+  </Card>
+  
+  <Card title="Appropriate Memory" icon="memory">
+    Allocate 4-8GB for modded packs, 2-4GB for vanilla. Avoid allocating all system RAM.
+  </Card>
+  
+  <Card title="Auto-Download" icon="download">
+    Enable automatic Java download to ensure instances always have compatible Java versions.
+  </Card>
+  
+  <Card title="Test Configurations" icon="flask">
+    Always test Java settings before launching, especially after changing arguments or memory values.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Java Not Detected
+
+If Prism doesn't detect your Java:
+
+1. **Manual Path**: Browse to Java executable:
+   - Windows: `C:\Program Files\Java\jdk-17\bin\java.exe`
+   - macOS: `/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home/bin/java`
+   - Linux: `/usr/lib/jvm/java-17-openjdk/bin/java`
+
+2. **Set JAVA_HOME**: Add environment variable pointing to Java directory
+
+3. **Refresh List**: Restart Prism to re-scan for Java installations
+
+### Wrong Java Version
+
+If Minecraft requires different Java version:
+
+1. **Enable Auto-Download**: Settings → Java → Enable automatic Java download
+2. **Manual Download**: Download required Java version from Adoptium
+3. **Instance Override**: Set correct Java per instance if needed
+
+### Out of Memory Errors
+
+If you see `OutOfMemoryError`:
+
+1. **Increase Xmx**: Raise maximum memory allocation
+2. **Check System RAM**: Ensure system has enough available memory
+3. **Reduce Mods**: Too many mods can exceed memory limits
+4. **Enable G1GC**: Add `-XX:+UseG1GC` for better memory management
+
+### Java Validation Failed
+
+If validation consistently fails:
+
+1. **Reinstall Java**: Corrupt installation may cause issues
+2. **Check Permissions**: Ensure Java executable has execute permissions
+3. **Disable Antivirus**: Security software may block Java
+4. **Try Different Java**: Some Java distributions work better than others
+
+### Automatic Download Fails
+
+If auto-download doesn't work:
+
+1. **Check Internet**: Ensure stable internet connection
+2. **Firewall**: Allow Prism through firewall
+3. **Manual Download**: Download Java manually from Adoptium and configure path
+4. **Check Logs**: Review launcher logs for specific error messages

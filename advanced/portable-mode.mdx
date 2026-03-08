@@ -1,0 +1,566 @@
+---
+title: Portable Mode
+description: Run Prism Launcher in portable mode for USB drives, network shares, or custom locations
+---
+
+Portable mode allows you to run Prism Launcher with all data (instances, settings, accounts) stored in a custom location, making it easy to run from USB drives, network shares, or maintain multiple separate configurations.
+
+## What is Portable Mode?
+
+In portable mode, Prism Launcher stores all its data in a self-contained directory instead of the default system locations. This means:
+
+- All instances, settings, and caches are stored together
+- No data is written to system directories
+- The launcher can run from removable media
+- Multiple launcher installations won't interfere with each other
+- Easy to backup, move, or sync your entire Minecraft setup
+
+## Default Data Locations
+
+When **not** in portable mode, Prism Launcher uses these default locations:
+
+<CodeGroup>
+```bash Linux
+~/.local/share/PrismLauncher/
+```
+
+```bash macOS
+~/Library/Application Support/PrismLauncher/
+```
+
+```bash Windows
+%APPDATA%\PrismLauncher\
+```
+</CodeGroup>
+
+## Enabling Portable Mode
+
+There are three methods to enable portable mode, listed in order of precedence:
+
+### Method 1: Command-Line Argument (Highest Priority)
+
+Use the `--dir` or `-d` argument:
+
+<CodeGroup>
+```bash Linux/macOS: Specific directory
+prismlauncher --dir /path/to/data
+```
+
+```bash Current directory
+prismlauncher --dir .
+```
+
+```powershell Windows
+prismlauncher.exe --dir "C:\PortableLauncher\Data"
+```
+
+```batch Windows: Current directory
+prismlauncher.exe --dir .
+```
+</CodeGroup>
+
+<Note>
+This method is ideal for scripts and automation, as it provides explicit control over the data location.
+</Note>
+
+### Method 2: Environment Variable
+
+Set the `PRISMLAUNCHER_DATA_DIR` environment variable:
+
+<CodeGroup>
+```bash Linux/macOS: Temporary
+export PRISMLAUNCHER_DATA_DIR="/path/to/data"
+prismlauncher
+```
+
+```bash Linux/macOS: Permanent (.bashrc or .zshrc)
+export PRISMLAUNCHER_DATA_DIR="$HOME/MinecraftData"
+```
+
+```powershell Windows (PowerShell)
+$env:PRISMLAUNCHER_DATA_DIR = "C:\MinecraftData"
+prismlauncher.exe
+```
+
+```batch Windows (CMD)
+set PRISMLAUNCHER_DATA_DIR=C:\MinecraftData
+prismlauncher.exe
+```
+</CodeGroup>
+
+<Warning>
+The command-line `--dir` argument takes precedence over this environment variable.
+</Warning>
+
+### Method 3: Portable Markers (Linux/Windows only)
+
+Create specific files or folders to automatically enable portable mode:
+
+#### UserData Folder (Recommended)
+
+Create a `UserData` folder next to the launcher executable:
+
+<CodeGroup>
+```bash Linux
+cd /path/to/prismlauncher
+mkdir UserData
+./prismlauncher
+# Data will be stored in ./UserData/
+```
+
+```batch Windows
+cd C:\PrismLauncher
+mkdir UserData
+prismlauncher.exe
+REM Data will be stored in UserData\
+```
+</CodeGroup>
+
+**Directory structure:**
+```
+PrismLauncher/
+├── prismlauncher(.exe)
+└── UserData/           ← Data stored here
+    ├── instances/
+    ├── accounts.json
+    ├── prismlauncher.cfg
+    └── ...
+```
+
+#### portable.txt File (Alternative)
+
+Create an empty `portable.txt` file next to the launcher executable:
+
+<CodeGroup>
+```bash Linux
+cd /path/to/prismlauncher
+touch portable.txt
+./prismlauncher
+# Data will be stored in ./
+```
+
+```batch Windows
+cd C:\PrismLauncher
+type nul > portable.txt
+prismlauncher.exe
+REM Data will be stored in current directory
+```
+</CodeGroup>
+
+**Directory structure:**
+```
+PrismLauncher/
+├── prismlauncher(.exe)
+├── portable.txt        ← Marker file
+├── instances/          ← Data stored in same directory
+├── accounts.json
+├── prismlauncher.cfg
+└── ...
+```
+
+<Note>
+The `UserData` folder method is preferred as it keeps the launcher directory cleaner and separates program files from user data.
+</Note>
+
+<Warning>
+These marker methods are **not available on macOS** due to application bundle structure. Use `--dir` or environment variable instead.
+</Warning>
+
+## Precedence Order
+
+When multiple methods are present, Prism Launcher determines the data directory in this order:
+
+1. **`--dir` command-line argument** (highest priority)
+2. **`PRISMLAUNCHER_DATA_DIR` environment variable**
+3. **`UserData` folder** (if exists)
+4. **`portable.txt` file** (if exists)
+5. **Default system location** (lowest priority)
+
+## Portable Installation Examples
+
+### USB Drive Setup
+
+Create a fully portable installation on a USB drive:
+
+<CodeGroup>
+```bash Linux
+# Assuming USB is mounted at /media/usb
+cd /media/usb
+mkdir PrismLauncher
+cd PrismLauncher
+
+# Extract or install Prism Launcher here
+# Create UserData folder
+mkdir UserData
+
+# Create launcher script
+cat > launch.sh << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+./prismlauncher
+EOF
+chmod +x launch.sh
+
+# Directory structure:
+# /media/usb/PrismLauncher/
+# ├── launch.sh
+# ├── prismlauncher
+# └── UserData/
+```
+
+```batch Windows
+REM Assuming USB is drive E:
+cd /d E:\
+mkdir PrismLauncher
+cd PrismLauncher
+
+REM Extract Prism Launcher here
+REM Create UserData folder
+mkdir UserData
+
+REM Create launcher batch file
+@echo off
+cd /d "%~dp0"
+start prismlauncher.exe
+> launch.bat
+
+REM Directory structure:
+REM E:\PrismLauncher\
+REM ├── launch.bat
+REM ├── prismlauncher.exe
+REM └── UserData\
+```
+</CodeGroup>
+
+### Network Share Installation
+
+Run from a network location:
+
+<CodeGroup>
+```bash Linux: NFS mount
+# Mount point: /mnt/network/minecraft
+cd /mnt/network/minecraft
+mkdir -p PrismLauncher/UserData
+
+# Create launcher script
+cat > /usr/local/bin/prismlauncher-network << 'EOF'
+#!/bin/bash
+cd /mnt/network/minecraft/PrismLauncher
+./prismlauncher
+EOF
+chmod +x /usr/local/bin/prismlauncher-network
+```
+
+```batch Windows: SMB share
+REM Map network drive
+net use P: \\server\minecraft
+
+REM Create launcher
+cd /d P:\PrismLauncher
+mkdir UserData
+
+REM Create shortcut or batch file
+@echo off
+P:
+cd \PrismLauncher
+start prismlauncher.exe
+```
+</CodeGroup>
+
+### Multiple Configurations
+
+Maintain separate launcher configurations for different purposes:
+
+```bash Linux/macOS
+# Personal gaming
+prismlauncher --dir ~/Gaming/Minecraft
+
+# Mod development
+prismlauncher --dir ~/Development/MinecraftModding
+
+# Server testing
+prismlauncher --dir ~/Servers/TestClient
+```
+
+```powershell Windows
+# Create separate shortcuts with different --dir arguments
+# Shortcut 1 Target:
+"C:\Program Files\PrismLauncher\prismlauncher.exe" --dir "D:\Gaming\Minecraft"
+
+# Shortcut 2 Target:
+"C:\Program Files\PrismLauncher\prismlauncher.exe" --dir "D:\Development\Modding"
+```
+
+## Portable Linux AppImage
+
+For Linux AppImage installations:
+
+```bash
+#!/bin/bash
+# portable-launch.sh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DATA_DIR="$SCRIPT_DIR/UserData"
+
+# Create data directory if it doesn't exist
+mkdir -p "$DATA_DIR"
+
+# Launch AppImage with portable data
+"$SCRIPT_DIR/PrismLauncher.AppImage" --dir "$DATA_DIR"
+```
+
+Directory structure:
+```
+Portable/
+├── PrismLauncher.AppImage
+├── portable-launch.sh
+└── UserData/
+    └── (launcher data)
+```
+
+## Distribution and Deployment
+
+### Creating a Portable Package
+
+1. Set up Prism Launcher in portable mode
+2. Configure instances, settings, and accounts
+3. Package the entire directory
+4. Distribute to other systems
+
+<CodeGroup>
+```bash Linux: Create portable archive
+cd /path/to/portable
+tar -czf PrismLauncher-Portable.tar.gz \
+    prismlauncher \
+    UserData/ \
+    launch.sh
+```
+
+```powershell Windows: Create portable ZIP
+Compress-Archive -Path "C:\PrismLauncher\*" -DestinationPath "PrismLauncher-Portable.zip"
+```
+</CodeGroup>
+
+### Pre-configured Modpack Distribution
+
+Distribute a launcher with pre-installed modpacks:
+
+1. Install Prism Launcher in portable mode
+2. Create and configure instances
+3. Package the launcher with instances
+4. Users extract and run immediately
+
+<Note>
+Remember to comply with mod licenses and terms of service when distributing modpacks.
+</Note>
+
+## Data Directory Structure
+
+A typical portable data directory contains:
+
+```
+UserData/  (or custom directory)
+├── accounts.json           # Account credentials (encrypted)
+├── prismlauncher.cfg       # Global launcher settings
+├── instances/              # All Minecraft instances
+│   ├── Instance1/
+│   ├── Instance2/
+│   └── .../
+├── assets/                 # Minecraft assets
+├── libraries/              # Minecraft libraries
+├── java/                   # Downloaded Java runtimes
+├── mods/                   # Central mods folder (if enabled)
+├── icons/                  # Instance icons
+├── logs/                   # Launcher logs
+├── cache/                  # Downloaded files cache
+├── meta/                   # Minecraft version metadata
+└── translations/           # UI translations
+```
+
+## Syncing and Backup
+
+### Cloud Sync
+
+Portable mode makes cloud synchronization easy:
+
+<CodeGroup>
+```bash Syncthing
+# Sync the entire UserData folder
+syncthing add /path/to/PrismLauncher/UserData
+```
+
+```bash rclone
+# Backup to cloud storage
+rclone sync /path/to/UserData remote:minecraft-backup
+```
+
+```bash Dropbox/Google Drive
+# Place launcher in synced folder
+mkdir ~/Dropbox/PrismLauncher
+cd ~/Dropbox/PrismLauncher
+# Install launcher and create UserData folder
+```
+</CodeGroup>
+
+<Warning>
+**Concurrent Access Issues:**
+- Do not run multiple launcher instances from the same synced data directory simultaneously
+- Lock files may prevent proper startup
+- Data corruption can occur from conflicting writes
+</Warning>
+
+### Backup Strategy
+
+```bash Simple backup script
+#!/bin/bash
+# backup-minecraft.sh
+
+DATA_DIR="/path/to/PrismLauncher/UserData"
+BACKUP_DIR="/path/to/backups"
+DATE=$(date +%Y%m%d-%H%M%S)
+
+tar -czf "$BACKUP_DIR/prism-backup-$DATE.tar.gz" -C "$DATA_DIR" .
+
+# Keep only last 7 backups
+ls -t "$BACKUP_DIR"/prism-backup-*.tar.gz | tail -n +8 | xargs rm -f
+```
+
+## Performance Considerations
+
+### USB Drive Performance
+
+<Note>
+- Use USB 3.0 or faster for acceptable performance
+- SSD-based USB drives provide much better experience than HDD
+- Expect longer load times compared to local installation
+- Enable caching if supported by your filesystem
+</Note>
+
+### Network Share Performance
+
+<Warning>
+- Network latency significantly impacts launcher responsiveness
+- Consider caching frequently accessed files locally
+- Some operations may time out on slow connections
+- Not recommended for gameplay, only for launcher management
+</Warning>
+
+## Troubleshooting
+
+### Permissions Issues
+
+<CodeGroup>
+```bash Linux: Fix permissions
+chmod -R u+rwX /path/to/UserData
+chown -R $USER:$USER /path/to/UserData
+```
+
+```powershell Windows: Check folder permissions
+Right-click UserData folder → Properties → Security
+Ensure your user has Full Control
+```
+</CodeGroup>
+
+### Cannot Create Data Directory
+
+If the launcher fails to create the data directory:
+
+1. Check disk space availability
+2. Verify write permissions
+3. Ensure parent directories exist
+4. Check for filesystem errors
+
+### Launcher Ignoring Portable Mode
+
+If portable markers are ignored:
+
+1. Verify file/folder names are exactly correct (`UserData`, `portable.txt`)
+2. Check placement relative to launcher executable
+3. Ensure you're running the correct executable
+4. Use `--dir` as an explicit override
+
+### AppImage Portable Issues
+
+For AppImage-specific problems:
+
+```bash Verify APPIMAGE variable
+echo $APPIMAGE
+# Should show path to .AppImage file when running
+
+# If empty, run explicitly:
+APPIMAGE=/path/to/PrismLauncher.AppImage /path/to/PrismLauncher.AppImage --dir ./UserData
+```
+
+## Security Considerations
+
+<Warning>
+**Portable Data Security:**
+- Account credentials are stored in the data directory (encrypted)
+- Protect portable storage from unauthorized access
+- Use encryption for sensitive portable installations
+- Be aware of where you connect portable drives
+- Consider using full-disk encryption for USB drives
+</Warning>
+
+## Platform-Specific Notes
+
+### Windows
+
+- Works on all Windows versions (7+)
+- Portable installation can bypass UAC restrictions
+- Excellent for LAN parties and shared computers
+- Can install on network drives (with performance caveats)
+
+### Linux
+
+- AppImage is inherently portable
+- Works on most distributions without dependencies
+- Can run from read-only media with data on separate writable storage
+- Consider using `--dir /tmp/minecraft` for temporary sessions
+
+### macOS
+
+<Note>
+Portable markers (`UserData` folder, `portable.txt`) are **not supported** on macOS due to the application bundle structure. Always use:
+- `--dir` command-line argument, or
+- `PRISMLAUNCHER_DATA_DIR` environment variable
+</Note>
+
+## Migration
+
+### From Standard to Portable
+
+```bash Linux/macOS
+# Copy existing data to portable location
+cp -r ~/.local/share/PrismLauncher /path/to/portable/UserData
+cd /path/to/portable
+./prismlauncher --dir ./UserData
+```
+
+```powershell Windows
+# Copy existing data
+xcopy /E /I "%APPDATA%\PrismLauncher" "D:\Portable\UserData"
+cd /d D:\Portable
+prismlauncher.exe --dir .\UserData
+```
+
+### From Portable to Standard
+
+```bash Linux/macOS
+# Copy portable data to standard location
+cp -r /path/to/portable/UserData/* ~/.local/share/PrismLauncher/
+prismlauncher
+# (without --dir argument)
+```
+
+```powershell Windows
+xcopy /E /I "D:\Portable\UserData" "%APPDATA%\PrismLauncher"
+prismlauncher.exe
+REM (without --dir argument)
+```
+
+## Related Documentation
+
+- [Command-Line Arguments](/advanced/command-line) - Use `--dir` for portable mode
+- [Environment Variables](/advanced/environment-variables) - Set `PRISMLAUNCHER_DATA_DIR`
+- [Custom Commands](/advanced/custom-commands) - Automation in portable setups

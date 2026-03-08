@@ -1,0 +1,337 @@
+---
+title: Feed The Beast (FTB) Modpack Support
+description: Install and play Feed The Beast modpacks in Prism Launcher
+---
+
+Feed The Beast (FTB) is one of the most established modpack platforms in the Minecraft community. Prism Launcher provides full support for browsing, installing, and managing FTB modpacks.
+
+## Overview
+
+The FTB integration offers:
+
+- **Complete FTB catalog** - Access to all public FTB modpacks
+- **Version management** - Install specific modpack versions
+- **Featured packs** - Highlighted and curated modpack collections
+- **Automatic updates** - Check for and install modpack updates
+- **CurseForge integration** - Many FTB packs use CurseForge mods
+- **Legacy pack support** - Import older FTB launcher modpacks
+
+## Creating an FTB Instance
+
+<Steps>
+  <Step title="Open the New Instance dialog">
+    Click **Add Instance** from the main window.
+  </Step>
+  
+  <Step title="Navigate to FTB">
+    Select the **FTB** tab in the new instance dialog.
+  </Step>
+  
+  <Step title="Browse modpacks">
+    Browse the FTB catalog or use the search bar to find specific packs.
+  </Step>
+  
+  <Step title="Select a modpack">
+    Click on a modpack to view its description, author, and metadata.
+  </Step>
+  
+  <Step title="Choose version">
+    Select your preferred version from the dropdown menu. Available versions are listed with their Minecraft version.
+  </Step>
+  
+  <Step title="Create the instance">
+    Click **OK** to download and install the modpack.
+  </Step>
+</Steps>
+
+## Modpack Information
+
+### Pack Metadata
+
+FTB modpacks include rich metadata:
+
+- **Name and synopsis** - Pack title and short description
+- **Description** - Full pack overview and features
+- **Authors** - Pack creators with links to their profiles
+- **Tags** - Categories like "Magic", "Tech", "Expert", etc.
+- **Art assets** - Pack logo and banner images
+- **Featured status** - Whether the pack is featured on FTB
+- **Install/play counts** - Popularity metrics
+
+### Version Information
+
+Each version provides:
+
+- **Version name** - Release identifier (e.g., "1.0.0")
+- **Minecraft version** - Compatible game version
+- **Version type** - Release, beta, or alpha
+- **System requirements** - Minimum and recommended RAM
+- **Mod loader targets** - Required Forge/Fabric versions
+- **File list** - All included mods and files
+- **Update timestamp** - When the version was released
+
+<Note>
+FTB modpacks often have specific memory requirements. Pay attention to the recommended RAM listed in the version details.
+</Note>
+
+## Sorting and Filtering
+
+The FTB browser provides several sorting options:
+
+- **Featured** - FTB's highlighted modpacks
+- **Popularity** - Most played modpacks
+- **Installs** - Most installed packs
+- **Name** - Alphabetical order
+- **Updated** - Recently updated packs
+- **Released** - Newest releases
+
+Use the search bar to filter by:
+- Pack name
+- Author
+- Tag or category
+
+## Technical Implementation
+
+### FTB API Structure
+
+The integration uses FTB's modpack API, which provides:
+
+**Modpack Listings**
+```json
+{
+  "id": 123,
+  "name": "FTB Infinity Evolved",
+  "synopsis": "A kitchen sink modpack",
+  "type": "modpack",
+  "featured": true,
+  "installs": 1000000,
+  "plays": 5000000,
+  "tags": [
+    {"id": 1, "name": "Magic"},
+    {"id": 2, "name": "Tech"}
+  ],
+  "versions": [
+    {
+      "id": 456,
+      "name": "3.0.0",
+      "type": "release"
+    }
+  ]
+}
+```
+
+**Version Details**
+```json
+{
+  "id": 456,
+  "name": "3.0.0",
+  "specs": {
+    "id": 1,
+    "minimum": 4096,
+    "recommended": 6144
+  },
+  "targets": [
+    {
+      "id": 1,
+      "type": "game",
+      "name": "minecraft",
+      "version": "1.20.1"
+    },
+    {
+      "id": 2,
+      "type": "modloader",
+      "name": "forge",
+      "version": "47.2.0"
+    }
+  ],
+  "files": [
+    {
+      "id": 789,
+      "type": "mod",
+      "name": "example-mod.jar",
+      "path": "mods/example-mod.jar",
+      "url": "https://...",
+      "sha1": "abc123",
+      "size": 1024000,
+      "clientOnly": false,
+      "serverOnly": false,
+      "optional": false
+    }
+  ]
+}
+```
+
+### File Types
+
+FTB packs can include various file types:
+
+- **Mods** - Standard mod files
+- **Config** - Configuration files
+- **Scripts** - CraftTweaker/KubeJS scripts
+- **Resources** - Resource pack files
+- **Overrides** - Custom files that override defaults
+
+### CurseForge Integration
+
+Many FTB modpacks source mods from CurseForge. Files include CurseForge metadata:
+
+```json
+{
+  "curseforge": {
+    "project_id": 123456,
+    "file_id": 789012
+  }
+}
+```
+
+This allows Prism Launcher to:
+- Download mods from CurseForge CDN
+- Check for mod updates
+- Resolve dependencies
+
+<Info>
+FTB packs that use CurseForge mods benefit from CurseForge's CDN for faster downloads and better availability.
+</Info>
+
+## System Requirements
+
+FTB modpacks specify memory requirements in megabytes:
+
+- **Minimum** - Bare minimum to run (may have performance issues)
+- **Recommended** - Suggested allocation for smooth gameplay
+
+### Setting Memory Allocation
+
+<Steps>
+  <Step title="Edit instance settings">
+    Right-click the instance and select **Edit Instance**.
+  </Step>
+  
+  <Step title="Navigate to Settings">
+    Click on the **Settings** page.
+  </Step>
+  
+  <Step title="Enable custom memory">
+    Check **Override global memory settings**.
+  </Step>
+  
+  <Step title="Set allocation">
+    Adjust the **Maximum memory allocation** to the recommended value or higher.
+  </Step>
+</Steps>
+
+<Warning>
+Allocating too little memory will cause crashes. Allocating too much can reduce performance due to garbage collection overhead.
+</Warning>
+
+## Optional and Client/Server Files
+
+FTB modpacks can specify file installation rules:
+
+- **clientOnly** - Only installed on clients, not servers
+- **serverOnly** - Only installed on servers, not clients
+- **optional** - User can choose to install or skip
+
+Prism Launcher automatically handles these flags during installation.
+
+## Art Assets
+
+FTB modpacks include art assets with metadata:
+
+- **URL** - Location of the image
+- **Type** - Logo, banner, or background
+- **Dimensions** - Width and height
+- **SHA-1 hash** - For verification
+- **Size** - File size in bytes
+- **Compressed** - Whether the image is compressed
+
+<Note>
+The launcher downloads and caches pack art to display in the modpack browser.
+</Note>
+
+## Legacy FTB Packs
+
+Prism Launcher also supports importing modpacks from the legacy FTB launcher.
+
+<Steps>
+  <Step title="Locate FTB legacy instance">
+    Find your FTB launcher installation directory.
+  </Step>
+  
+  <Step title="Import instance">
+    Use **File** → **Import Instance** and select the legacy FTB folder.
+  </Step>
+  
+  <Step title="Convert">
+    Prism Launcher will convert the instance to its native format.
+  </Step>
+</Steps>
+
+<Info>
+Legacy FTB packs are stored in a different format but can be imported and managed like any other instance.
+</Info>
+
+## Updating FTB Modpacks
+
+When a new version of an FTB modpack is released:
+
+<Steps>
+  <Step title="Check for updates">
+    The launcher can detect when newer versions are available.
+  </Step>
+  
+  <Step title="Review changes">
+    Check the modpack's changelog to see what's new.
+  </Step>
+  
+  <Step title="Update instance">
+    Create a new instance with the updated version, or manually update mods.
+  </Step>
+  
+  <Step title="Migrate saves (optional)">
+    Copy your world saves to the new instance if needed.
+  </Step>
+</Steps>
+
+<Warning>
+Updating to a major new version may not be save-compatible. Always back up your worlds before updating.
+</Warning>
+
+## Troubleshooting
+
+### Common Issues
+
+**"Failed to load FTB modpack list"**
+- Check your internet connection
+- Verify FTB's API is accessible
+- Try refreshing the modpack browser
+
+**"Out of memory" errors**
+- Increase maximum memory allocation
+- Close other applications to free RAM
+- Check that your system meets the pack's requirements
+
+**"Failed to download files"**
+- Some mods may temporarily be unavailable
+- Check if CurseForge integration is working
+- Verify you have enough disk space
+
+**"Pack won't launch"**
+- Verify Java version compatibility
+- Check mod loader installation
+- Review console output for error messages
+
+### CurseForge Dependencies
+
+<Info>
+Since many FTB packs use CurseForge mods, ensure your CurseForge integration is working properly. See the CurseForge documentation for more details.
+</Info>
+
+## Source Code Reference
+
+The FTB integration is implemented in:
+- `/launcher/modplatform/ftb/FTBPackManifest.h` - Pack manifest structures
+- `/launcher/modplatform/ftb/FTBPackInstallTask.cpp` - Installation logic
+- `/launcher/modplatform/legacy_ftb/` - Legacy FTB launcher support
+- `/launcher/modplatform/import_ftb/` - FTB pack import functionality
+- `/launcher/ui/pages/modplatform/ftb/FtbPage.cpp` - User interface

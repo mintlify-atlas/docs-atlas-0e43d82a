@@ -1,0 +1,270 @@
+---
+title: ATLauncher Modpack Support
+description: Install and manage ATLauncher modpacks in Prism Launcher
+---
+
+ATLauncher is a popular launcher and modpack platform with hundreds of community-created modpacks. Prism Launcher provides native support for browsing and installing ATLauncher modpacks directly.
+
+## Overview
+
+The ATLauncher integration offers:
+
+- **Direct modpack access** - Browse ATLauncher's complete modpack catalog
+- **Optional mod selection** - Choose which optional mods to install
+- **Public and semi-public packs** - Support for both public and code-protected packs
+- **Version selection** - Install specific modpack versions
+- **Share code support** - Install packs using share codes
+- **Automatic configuration** - Handles complex installation rules and dependencies
+
+## Creating an ATLauncher Instance
+
+<Steps>
+  <Step title="Open the New Instance dialog">
+    Click **Add Instance** from the main window.
+  </Step>
+  
+  <Step title="Navigate to ATLauncher">
+    Select the **ATLauncher** tab in the new instance dialog.
+  </Step>
+  
+  <Step title="Browse modpacks">
+    The interface displays available ATLauncher modpacks. Use the search bar to filter by name.
+  </Step>
+  
+  <Step title="Select a modpack">
+    Click on a modpack to view its description and available versions.
+  </Step>
+  
+  <Step title="Choose version">
+    Select your preferred modpack version from the dropdown menu.
+  </Step>
+  
+  <Step title="Configure optional mods (if applicable)">
+    Some modpacks offer optional mods or configurations. A dialog will appear allowing you to customize your installation.
+  </Step>
+  
+  <Step title="Create the instance">
+    Click **OK** to download and install the modpack.
+  </Step>
+</Steps>
+
+## Optional Mod Selection
+
+Many ATLauncher modpacks include optional mods that you can choose to install or skip.
+
+### Mod Types
+
+ATLauncher supports various mod types with different installation behaviors:
+
+- **Required mods** - Automatically installed, cannot be disabled
+- **Optional mods** - User choice to install or skip
+- **Recommended mods** - Suggested by pack author, pre-selected but optional
+- **Hidden mods** - Only shown if dependencies are met
+- **Library mods** - Dependencies for other mods
+
+### Mod Dependencies
+
+Optional mods may depend on other mods. The launcher:
+
+1. Automatically enables required dependencies
+2. Warns if you disable a mod that others depend on
+3. Provides color-coded warnings for compatibility issues
+
+<Note>
+Some mods may have conditional visibility based on other selections. The dialog updates dynamically as you make choices.
+</Note>
+
+## Mod Installation Types
+
+ATLauncher modpacks define specific installation rules for different file types:
+
+### Standard Types
+
+- **Root** - Files placed in the instance root directory
+- **Forge** - Forge mod loader files
+- **Jar** - Files to be added to the Minecraft jar (legacy)
+- **Mods** - Standard mods folder
+- **Coremods** - Core mod directory
+
+### Special Types
+
+- **Resource Packs** - Installed to resourcepacks folder
+- **Shader Packs** - Installed to shaderpacks folder
+- **Texture Packs** - Legacy texture packs (pre-1.6)
+- **Plugins** - Server plugins (for MCPC+ packs)
+
+### Archive Types
+
+- **Extract** - Archives extracted to specified locations
+- **Decomp** - Decompressed files
+- **Millenaire** - Special handling for Millenaire mod
+
+<Info>
+The launcher automatically handles file placement based on the pack's manifest specifications.
+</Info>
+
+## Share Codes
+
+ATLauncher supports share codes for semi-public and private modpacks.
+
+<Steps>
+  <Step title="Get a share code">
+    Obtain a share code from the modpack author or community.
+  </Step>
+  
+  <Step title="Enter the code">
+    In the ATLauncher tab, look for the share code input field.
+  </Step>
+  
+  <Step title="Load the pack">
+    Enter the code and the launcher will fetch the modpack information.
+  </Step>
+  
+  <Step title="Install normally">
+    Proceed with installation as you would for any modpack.
+  </Step>
+</Steps>
+
+<Warning>
+Share codes are unique to each pack and may expire. Contact the pack author if a code doesn't work.
+</Warning>
+
+## Version Selection
+
+ATLauncher modpacks often have multiple versions available:
+
+### Version Types
+
+- **Recommended** - Pack author's recommended version
+- **Latest** - Most recent release
+- **Older builds** - Previous versions for compatibility or preference
+
+Each version specifies:
+- Compatible Minecraft version
+- Required mod loader version
+- Included mods and their versions
+
+## Technical Details
+
+### Pack Manifest Structure
+
+ATLauncher modpacks use detailed JSON manifests that define:
+
+```json
+{
+  "version": "1.0.0",
+  "minecraft": "1.20.1",
+  "loader": {
+    "type": "forge",
+    "version": "47.2.0",
+    "latest": false,
+    "recommended": true
+  },
+  "mods": [
+    {
+      "name": "Example Mod",
+      "version": "1.0",
+      "type": "mods",
+      "url": "https://...",
+      "md5": "abc123",
+      "optional": false,
+      "recommended": true,
+      "download": "direct"
+    }
+  ]
+}
+```
+
+### Download Types
+
+ATLauncher supports multiple download methods:
+
+- **Direct** - Direct download from URL
+- **Server** - Download from ATLauncher's servers
+- **Browser** - Requires manual browser download (rare)
+
+### File Verification
+
+All downloaded files are verified using MD5 checksums to ensure integrity.
+
+<Info>
+If a file fails verification, the launcher will automatically retry the download.
+</Info>
+
+## Configuration Files
+
+ATLauncher modpacks can include custom configuration files:
+
+- **Configs** - Mod configuration files with specific settings
+- **Keeps** - Files to preserve during updates
+- **Deletes** - Files to remove during installation
+
+### Update Behavior
+
+When updating an ATLauncher pack:
+
+1. Files marked as "keep" are preserved
+2. Files marked for deletion are removed
+3. New configurations are applied
+4. Optional mods selection is re-prompted if changed
+
+## Sorting Options
+
+The ATLauncher browser provides several sorting methods:
+
+- **Position** - Pack author's preferred ordering
+- **Name** - Alphabetical
+- **Type** - Public vs. semi-public packs
+
+## Color-Coded Warnings
+
+The optional mod dialog uses colors to indicate:
+
+- **Red warnings** - Critical issues or incompatibilities
+- **Yellow warnings** - Cautions or performance notes
+- **Standard** - No warnings
+
+<Warning>
+Pay attention to colored warnings when selecting optional mods. They often indicate known issues or conflicts.
+</Warning>
+
+## Troubleshooting
+
+### Common Issues
+
+**"Failed to load modpack list"**
+- Check your internet connection
+- Verify ATLauncher's API is accessible
+- Try refreshing the page
+
+**"Download failed for mod"**
+- Some mods may have temporary hosting issues
+- Check if the mod requires manual download
+- Try again later or contact pack author
+
+**"Optional mods not showing"**
+- Ensure dependencies are selected first
+- Some mods are hidden until requirements are met
+- Check for updates to the modpack
+
+**"Share code invalid"**
+- Verify the code was entered correctly
+- Check if the code has expired
+- Contact the pack author for a new code
+
+### Custom Main Classes
+
+Some ATLauncher packs specify custom main classes:
+
+<Info>
+The launcher automatically handles custom main classes and extra JVM arguments specified by the pack manifest.
+</Info>
+
+## Source Code Reference
+
+The ATLauncher integration is implemented in:
+- `/launcher/modplatform/atlauncher/ATLPackIndex.h` - Pack metadata
+- `/launcher/modplatform/atlauncher/ATLPackManifest.h` - Manifest structures
+- `/launcher/modplatform/atlauncher/ATLPackInstallTask.cpp` - Installation logic
+- `/launcher/modplatform/atlauncher/ATLShareCode.h` - Share code handling
+- `/launcher/ui/pages/modplatform/atlauncher/AtlPage.cpp` - User interface
