@@ -1,0 +1,126 @@
+{
+  "projectType": "general",
+  "projectName": "Prism Launcher",
+  "projectDescription": "A custom launcher for Minecraft that allows you to easily manage multiple installations of Minecraft at once",
+  "theme": "palm",
+  "primaryColor": "#aaca72",
+  "lightColor": "#8c5a56",
+  "darkColor": "#b5c1d1",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "guides/instances",
+              "guides/mod-management",
+              "guides/resource-packs",
+              "guides/java-setup",
+              "guides/settings"
+            ]
+          },
+          {
+            "group": "Mod Platforms",
+            "pages": [
+              "mod-platforms/modrinth",
+              "mod-platforms/curseforge",
+              "mod-platforms/atlauncher",
+              "mod-platforms/ftb",
+              "mod-platforms/technic"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/custom-commands",
+              "advanced/environment-variables",
+              "advanced/command-line",
+              "advanced/portable-mode"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/getting-started",
+              "development/building",
+              "development/code-style",
+              "development/ai-policy"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture/overview",
+              "development/architecture/instance-management",
+              "development/architecture/authentication",
+              "development/architecture/mod-platform-api"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/core-classes",
+              "api/instance-api",
+              "api/mod-api",
+              "api/network-api"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Community",
+        "groups": [
+          {
+            "group": "Resources",
+            "pages": [
+              "community/support",
+              "community/translations",
+              "community/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multiple Minecraft instance management",
+    "Mod platform integration (Modrinth, CurseForge, ATLauncher, FTB, Technic)",
+    "Modpack import and export",
+    "Java version management and auto-download",
+    "Resource pack and shader management",
+    "World management",
+    "Microsoft account authentication",
+    "Custom launch configurations",
+    "Cross-platform support (Windows, Linux, macOS)",
+    "Automatic updates"
+  ],
+  "publicApiSurface": [
+    "BaseInstance - Core instance abstraction",
+    "MinecraftInstance - Minecraft-specific instance implementation",
+    "PackProfile - Mod and component management",
+    "InstanceList - Instance collection management",
+    "ModFolderModel - Mod file management",
+    "ResourcePackFolderModel - Resource pack management",
+    "WorldList - World management",
+    "AccountList - Account management",
+    "ModAPI (Modrinth, CurseForge, etc.) - Mod platform integrations",
+    "LaunchController - Launch process orchestration",
+    "Application - Main application class",
+    "SettingsObject - Configuration management"
+  ]
+}
